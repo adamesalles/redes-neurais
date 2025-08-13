@@ -1,0 +1,396 @@
+\documentclass[a4paper,12pt]{article}
+
+% Pacotes essenciais
+\usepackage[brazil]{babel}
+% \usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tikz}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{minted}
+\usepackage{pgfplots}
+\usepackage{xcolor}
+\usepackage[minted, most]{tcolorbox}
+
+\definecolor{nes_dark_purple}{HTML}{4E006B}
+\definecolor{nes_dark_orange}{HTML}{8BFF88}
+
+% Configuração de cabeçalho e rodapé
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Curso de Redes Neurais - Semana 1}
+\fancyhead[R]{\today}
+\fancyfoot[C]{\thepage}
+
+% Configuração para código Python
+\AtBeginDocument{% 
+\newtcblisting[]{code}[2][]{%
+  % theorem={Listing}{listings}{#1},
+  colback=white!5,
+  sharp corners,
+  colframe=nes_dark_purple,
+  enhanced,
+  listing only,
+  listing engine=minted,
+  minted language=#2,
+  minted options={%
+      linenos,
+      breakbytokenanywhere=true,
+      breaklines,
+      autogobble,
+      fontsize=\scriptsize,
+      numbersep=2mm,
+      baselinestretch=1.1},
+  overlay={%
+       \begin{tcbclipinterior}
+           \fill[black!5] (frame.south west) rectangle ([xshift=4mm]frame.north west);
+       \end{tcbclipinterior}},
+  breakable,
+  title = {#1}
+}
+}
+
+% Configuração de links
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=blue
+}
+
+% Definição de ambientes personalizados
+\newtheorem{definicao}{Definição}[section]
+\newtheorem{teorema}{Teorema}[section]
+\newtheorem{exemplo}{Exemplo}[section]
+
+% Título do documento
+\title{Notas de Aula - Semana 1 \\
+       \large Revisão de Machine Learning e Descida de Gradiente\\
+       \itshape Redes Neurais}
+\author{Eduardo Adame}
+\date{13 de agosto de 2025}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+% Seção 1: Introdução
+\section{Introdução}
+
+Esta primeira aula serve como uma revisão dos conceitos fundamentais de machine learning que são essenciais para compreender redes neurais. O foco principal está na descida de gradiente, algoritmo de otimização que forma a base do treinamento de redes neurais.
+
+Por que começar com uma revisão de ML? Redes neurais são, em essência, uma extensão natural dos métodos de aprendizado de máquina tradicionais. Muitos conceitos fundamentais são compartilhados: função de custo, otimização, regularização, e avaliação de modelos. Ao entender profundamente esses conceitos em um contexto mais simples (regressão linear), será mais fácil aplicá-los em contextos mais complexos (redes neurais profundas).
+
+\subsection{Objetivos de Aprendizagem}
+Ao final desta aula, o estudante será capaz de:
+\begin{itemize}
+    \item Implementar o algoritmo de descida de gradiente do zero
+    \item Compreender o efeito da taxa de aprendizado na convergência
+    \item Distinguir entre descida de gradiente em lote (batch) e estocástica (SGD)
+    \item Analisar trajetórias de convergência no espaço de parâmetros
+    \item Identificar problemas comuns na otimização via gradiente
+\end{itemize}
+
+% Seção 2: Fundamentos Teóricos
+\section{Fundamentos Teóricos}
+
+\subsection{Problema de Regressão Linear}
+
+Começamos com o problema clássico de regressão linear. Dado um conjunto de dados $\{(x_i, y_i)\}_{i=1}^n$, queremos encontrar uma função linear que melhor descreva a relação entre as variáveis de entrada $x_i$ e a variável de saída $y_i$.
+
+\begin{definicao}[Modelo de Regressão Linear]
+O modelo de regressão linear múltipla é definido como:
+\begin{equation}
+    y_i = \beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \cdots + \beta_p x_{ip} + \varepsilon_i
+\end{equation}
+onde $\beta_j$ são os coeficientes a serem estimados e $\varepsilon_i$ é o termo de erro.
+\end{definicao}
+
+Em notação matricial, podemos escrever:
+\begin{equation}
+    \mathbf{y} = X\boldsymbol{\beta} + \boldsymbol{\varepsilon}
+\end{equation}
+onde:
+\begin{itemize}
+    \item $\mathbf{y} \in \mathbb{R}^n$ é o vetor de variáveis dependentes
+    \item $X \in \mathbb{R}^{n \times (p+1)}$ é a matriz de design (incluindo coluna de 1's para o intercepto)
+    \item $\boldsymbol{\beta} \in \mathbb{R}^{p+1}$ é o vetor de coeficientes
+    \item $\boldsymbol{\varepsilon} \in \mathbb{R}^n$ é o vetor de erros
+\end{itemize}
+
+\subsection{Função de Custo}
+
+Para encontrar os melhores coeficientes, precisamos definir uma métrica que quantifique quão bem nosso modelo se ajusta aos dados.
+
+\begin{definicao}[Função de Custo MSE]
+A função de custo Mean Squared Error (MSE) é definida como:
+\begin{equation}
+    J(\boldsymbol{\beta}) = \frac{1}{2n}\sum_{i=1}^{n}(y_i - \hat{y_i})^2 = \frac{1}{2n}||\mathbf{y} - X\boldsymbol{\beta}||^2
+    \label{eq:mse}
+\end{equation}
+\end{definicao}
+
+O fator $\frac{1}{2}$ é incluído por conveniência matemática, pois simplifica o cálculo da derivada. O fator $\frac{1}{n}$ normaliza o custo pelo número de amostras.
+
+\subsection{Métodos de Solução}
+
+Existem duas abordagens principais para minimizar a função de custo:
+
+\subsubsection{Solução Analítica}
+A solução de forma fechada para o problema de mínimos quadrados é:
+\begin{equation}
+    \hat{\boldsymbol{\beta}} = (X^TX)^{-1}X^T\mathbf{y}
+    \label{eq:solucao_analitica}
+\end{equation}
+
+\textbf{Vantagens:}
+\begin{itemize}
+    \item Solução exata (dentro da precisão numérica)
+    \item Uma única operação
+    \item Não requer ajuste de hiperparâmetros
+\end{itemize}
+
+\textbf{Desvantagens:}
+\begin{itemize}
+    \item Complexidade computacional $O(p^3)$ para inversão da matriz
+    \item Problemas numéricos quando $X^TX$ é mal-condicionada
+    \item Não escalável para grandes conjuntos de dados
+    \item Não aplicável a funções de custo não-quadráticas
+\end{itemize}
+
+\subsubsection{Solução Numérica via Gradiente}
+A descida de gradiente é um algoritmo iterativo que minimiza a função de custo seguindo a direção de maior decréscimo.
+
+% Seção 3: Descida de Gradiente
+\section{Descida de Gradiente}
+
+\subsection{Derivação do Algoritmo}
+
+Para aplicar descida de gradiente, precisamos calcular o gradiente da função de custo em relação aos parâmetros.
+
+\begin{teorema}[Gradiente do MSE]
+O gradiente da função de custo MSE em relação aos parâmetros é:
+\begin{equation}
+    \nabla_{\boldsymbol{\beta}} J(\boldsymbol{\beta}) = \frac{1}{n}X^T(X\boldsymbol{\beta} - \mathbf{y})
+    \label{eq:gradiente}
+\end{equation}
+\end{teorema}
+
+\textbf{Demonstração:}
+\begin{align}
+    J(\boldsymbol{\beta}) &= \frac{1}{2n}||\mathbf{y} - X\boldsymbol{\beta}||^2 \\
+    &= \frac{1}{2n}(\mathbf{y} - X\boldsymbol{\beta})^T(\mathbf{y} - X\boldsymbol{\beta}) \\
+    &= \frac{1}{2n}(\mathbf{y}^T\mathbf{y} - 2\mathbf{y}^TX\boldsymbol{\beta} + \boldsymbol{\beta}^TX^TX\boldsymbol{\beta})
+\end{align}
+
+Derivando em relação a $\boldsymbol{\beta}$:
+\begin{equation}
+    \nabla_{\boldsymbol{\beta}} J(\boldsymbol{\beta}) = \frac{1}{2n}(-2X^T\mathbf{y} + 2X^TX\boldsymbol{\beta}) = \frac{1}{n}X^T(X\boldsymbol{\beta} - \mathbf{y})
+\end{equation}
+
+\subsection{Algoritmo de Descida de Gradiente}
+
+\begin{enumerate}
+    \item \textbf{Inicialização:} Escolha valores iniciais $\boldsymbol{\beta}^{(0)}$
+    \item \textbf{Para} $t = 0, 1, 2, \ldots$ até convergência:
+    \begin{enumerate}
+        \item Calcule o gradiente: $\mathbf{g}^{(t)} = \nabla_{\boldsymbol{\beta}} J(\boldsymbol{\beta}^{(t)})$
+        \item Atualize os parâmetros: $\boldsymbol{\beta}^{(t+1)} = \boldsymbol{\beta}^{(t)} - \alpha \mathbf{g}^{(t)}$
+    \end{enumerate}
+    \item \textbf{Retorne:} $\boldsymbol{\beta}^{(T)}$
+\end{enumerate}
+
+onde $\alpha > 0$ é a taxa de aprendizado (learning rate).
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[scale=1.2]
+                % Função de custo (parábola)
+                \draw[thick, blue!60] plot[smooth,domain=-2:2] (\x, {0.5*\x*\x + 0.5});
+                
+                % Pontos da trajetória
+                \fill[red] (1.5, 1.625) circle (2pt) node[above] {Início};
+                \draw[->, red, thick] (1.5, 1.625) -- (1.0, 1.3);
+                \fill[red] (1.0, 1.0) circle (2pt);
+                \draw[->, red, thick] (1.0, 1.0) -- (0.5, 0.8);
+                \fill[red] (0.5, 0.625) circle (2pt);
+                \draw[->, red, thick] (0.5, 0.625) -- (0.1, 0.55);
+                \fill[green] (0, 0.5) circle (2pt) node[below] {Mínimo};
+                
+                % Eixos
+                \draw[->] (-2.5, 0) -- (2.5, 0) node[right] {$\beta$};
+                \draw[->] (0, 0) -- (0, 3) node[above] {$J(\beta)$};
+            \end{tikzpicture}
+            \caption{Intuição geométrica da Descida de Gradiente}
+\end{figure}
+
+\subsection{Taxa de Aprendizado}
+
+A escolha da taxa de aprendizado $\alpha$ é crucial para o sucesso do algoritmo:
+
+\begin{itemize}
+    \item \textbf{$\alpha$ muito pequeno:} Convergência lenta, muitas iterações necessárias
+    \item \textbf{$\alpha$ adequado:} Convergência rápida e estável
+    \item \textbf{$\alpha$ muito grande:} Oscilações, possível divergência
+\end{itemize}
+
+Uma heurística comum é começar com $\alpha = 0.01$ e ajustar conforme necessário.
+
+\subsection{Critérios de Parada}
+
+O algoritmo deve parar quando:
+\begin{enumerate}
+    \item \textbf{Convergência do gradiente:} $||\nabla J(\boldsymbol{\beta}^{(t)})|| < \varepsilon$
+    \item \textbf{Convergência dos parâmetros:} $||\boldsymbol{\beta}^{(t+1)} - \boldsymbol{\beta}^{(t)}|| < \varepsilon$
+    \item \textbf{Convergência da função de custo:} $|J(\boldsymbol{\beta}^{(t+1)}) - J(\boldsymbol{\beta}^{(t)})| < \varepsilon$
+    \item \textbf{Número máximo de iterações:} $t > T_{max}$
+\end{enumerate}
+
+% Seção 4: Gradiente Estocástico
+\section{Descida de Gradiente Estocástica (SGD)}
+
+\subsection{Motivação}
+
+Para conjuntos de dados muito grandes, calcular o gradiente usando todas as amostras (batch gradient descent) torna-se computacionalmente custoso. A descida de gradiente estocástica (SGD) oferece uma alternativa eficiente.
+
+\begin{definicao}[SGD]
+Na descida de gradiente estocástica, o gradiente é estimado usando apenas uma amostra (ou um pequeno lote) por vez:
+\begin{equation}
+    \boldsymbol{\beta}^{(t+1)} = \boldsymbol{\beta}^{(t)} - \alpha \nabla J_i(\boldsymbol{\beta}^{(t)})
+\end{equation}
+onde $J_i(\boldsymbol{\beta}) = \frac{1}{2}(y_i - \mathbf{x_i}^T\boldsymbol{\beta})^2$ é o custo para a amostra $i$.
+\end{definicao}
+
+\subsection{Algoritmo SGD}
+
+\begin{enumerate}
+    \item \textbf{Inicialização:} $\boldsymbol{\beta}^{(0)}$, defina número de épocas
+    \item \textbf{Para cada época:}
+    \begin{enumerate}
+        \item Embaralhe os dados (shuffle)
+        \item \textbf{Para cada amostra} $(x_i, y_i)$:
+        \begin{enumerate}
+            \item Calcule predição: $\hat{y_i} = \mathbf{x_i}^T\boldsymbol{\beta}$
+            \item Calcule erro: $e_i = y_i - \hat{y_i}$
+            \item Atualize: $\boldsymbol{\beta} = \boldsymbol{\beta} + \alpha e_i \mathbf{x_i}$
+        \end{enumerate}
+    \end{enumerate}
+\end{enumerate}
+
+\subsection{Vantagens e Desvantagens do SGD}
+
+\textbf{Vantagens:}
+\begin{itemize}
+    \item Computacionalmente eficiente para grandes conjuntos de dados
+    \item Pode escapar de mínimos locais devido ao ruído
+    \item Permite aprendizado online (dados chegando continuamente)
+    \item Convergência mais rápida em termos de tempo de execução
+\end{itemize}
+
+\textbf{Desvantagens:}
+\begin{itemize}
+    \item Convergência com oscilações
+    \item Estimativa ruidosa do gradiente
+    \item Requer mais cuidado na escolha da taxa de aprendizado
+    \item Pode não convergir para o mínimo exato
+\end{itemize}
+
+\subsection{Importância do Embaralhamento}
+
+O embaralhamento (shuffling) dos dados a cada época é crucial no SGD:
+
+\begin{itemize}
+    \item \textbf{Sem embaralhamento:} O algoritmo pode memorizar a ordem dos dados e criar ciclos na trajetória de convergência
+    \item \textbf{Com embaralhamento:} Reduz viés sistemático e melhora a convergência
+\end{itemize}
+
+% Seção 6: Exercícios Propostos
+\section{Exercícios Propostos}
+
+\subsection{Exercício 1: Implementação Básica}
+Implemente o algoritmo de descida de gradiente do zero e compare com:
+\begin{enumerate}
+    \item Solução analítica usando $(X^TX)^{-1}X^Ty$
+    \item Solução do scikit-learn usando \texttt{LinearRegression}
+\end{enumerate}
+
+Os três métodos devem convergir para resultados similares.
+
+\subsection{Exercício 2: Análise da Taxa de Aprendizado}
+Experimente diferentes valores de taxa de aprendizado:
+\begin{itemize}
+    \item $\alpha = 0.00001$ (muito pequeno)
+    \item $\alpha = 0.001$ (adequado)
+    \item $\alpha = 0.1$ (muito grande)
+\end{itemize}
+
+Para cada caso:
+\begin{enumerate}
+    \item Plote a trajetória no espaço de parâmetros
+    \item Plote a evolução da função de custo
+    \item Analise o comportamento da convergência
+\end{enumerate}
+
+\subsection{Exercício 3: SGD vs. Batch GD}
+Implemente SGD e compare com batch gradient descent:
+\begin{enumerate}
+    \item Execute SGD com embaralhamento
+    \item Execute SGD sem embaralhamento
+    \item Compare as trajetórias e tempos de convergência
+\end{enumerate}
+
+\textbf{Dica:} Use taxas de aprendizado diferentes para cada método (SGD geralmente precisa de taxa menor).
+
+
+% Seção 7: Leitura Complementar
+\section{Leitura Complementar}
+
+\subsection{Livros Recomendados}
+\begin{itemize}
+    \item \textbf{Hands-On Machine Learning} (Aurélien Géron) - Capítulo 4: Training Linear Models
+    \item \textbf{Pattern Recognition and Machine Learning} (Christopher Bishop) - Capítulo 3: Linear Models for Regression
+    \item \textbf{Deep Learning} (Ian Goodfellow) - Capítulo 4: Numerical Computation
+\end{itemize}
+
+\subsection{Recursos Online}
+\begin{itemize}
+    \item \textbf{CS229 Stanford:} \url{https://cs229.stanford.edu/main_notes.pdf}
+    \item \textbf{Gradient Descent Viz:} \url{https://www.ruder.io/optimizing-gradient-descent/}
+    \item \textbf{3Blue1Brown - Gradient Descent:} Série de vídeos sobre cálculo e otimização
+\end{itemize}
+
+% Seção 8: Próxima Aula
+\section{Próxima Aula: Introdução às Redes Neurais}
+
+Na próxima semana, expandiremos os conceitos de hoje para redes neurais:
+
+\begin{itemize}
+    \item Do neurônio biológico ao artificial
+    \item Perceptron: o primeiro modelo neural
+    \item Funções de ativação: linear vs. não-linear
+    \item Redes multi-camadas (MLPs)
+    \item Por que precisamos de não-linearidade?
+\end{itemize}
+
+\textbf{Preparação para próxima aula:}
+\begin{enumerate}
+    \item Complete todos os exercícios desta semana
+    \item Revise conceitos de funções matemáticas (sigmoid, tanh, ReLU)
+    \item Leia sobre o perceptron de Rosenblatt (1958)
+\end{enumerate}
+
+
+\end{document}

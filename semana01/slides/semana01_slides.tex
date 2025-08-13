@@ -1,0 +1,831 @@
+\documentclass[xcolor=dvipsnames,t,aspectratio=169]{beamer} %t para ficar alinhado no topo do slide
+
+\usecolortheme{rose}
+\usecolortheme{dolphin}
+\usetheme{Boadilla}
+
+\input{imports}
+
+\input{../../templates/slides/settings}
+
+\input{../../templates/slides/commands}
+
+\titlegraphic{
+    \includegraphics[scale = 0.5]{../../templates/slides/logo}
+}
+
+\logo{
+\begin{tikzpicture}[overlay,remember picture]
+\node[left=1.1cm, below=0.2cm] at (current page.30){
+    \includegraphics[width=0.1\textwidth]{../../templates/slides/logo}};
+\end{tikzpicture}
+}
+
+\newcommand{\highlight}[1]{{\color{nes_dark_orange} #1}}
+
+\title{Revisão de Machine Learning e Descida de Gradiente} 
+
+\author{
+    Eduardo Adame
+}
+
+\date{{\color{nes_dark_purple}  \textbf{Curso Introdutório de Redes Neurais}\\[0.5em] 13 de agosto de 2025 }}
+
+\begin{document}
+
+\frame[plain]{\titlepage}
+\setcounter{framenumber}{0}
+
+
+\section{Sobre mim}
+\begin{frame}[c]{Sobre mim}
+    \begin{columns}[c]
+        \begin{column}{0.7\textwidth}
+            \begin{itemize}
+                \item \textbf{Nome:} Eduardo Adame
+                \item \textbf{Formação:}
+                \begin{itemize}
+                    \item Mestrando em Matemática Aplicada e Ciência de Dados (FGV EMAp); 
+                    \item Bacharel em Ciência de Dados e Inteligência Artificial (FGV EMAp).
+                \end{itemize}
+                \item \textbf{Experiência:} Diversos cursos produzidos/ministrados, ex-consultor por 2 anos e meio no Banco Mundial.
+                \item \textbf{Pesquisa:} Estatística bayesiana; quantificação de incerteza, modelos não-paramétricos, inferência exata.
+                \item \textbf{Contato:} eadamesalles@gmail.com
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.3\textwidth}
+            \centering
+            \includegraphics[width=0.9\textwidth]{images/me.jpg}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\section{Sobre o curso}
+\begin{frame}[c]{Sobre o curso}
+    \begin{display}[Objetivos]
+        \begin{itemize}
+            \item Fornecer \highlight{fundamentos sólidos} em redes neurais e aprendizado profundo
+            \item Desenvolver \highlight{intuição} sobre funcionamento dos algoritmos
+            \item Preparar estudantes para \highlight{projetos reais} de deep learning
+        \end{itemize}
+    \end{display}
+    
+    \begin{display}[Metodologia]
+        \begin{itemize}
+            \item Aulas teóricas (slides próprios + outros materiais)
+            \item Exercícios práticos em \highlight{Jupyter notebooks}
+            \item Implementação de algoritmos \highlight{do zero}
+            \item Uso de frameworks modernos (\highlight{Keras/TensorFlow})
+        \end{itemize}
+    \end{display}
+\end{frame}
+
+\begin{frame}[c]{Estrutura do curso - 12 semanas}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Fundamentos (Semanas 1-8):}
+            \begin{enumerate}
+                \item Revisão ML + Gradiente
+                \item Introdução às Redes Neurais
+                \item Retropropagação
+                \item Keras + Primeiras Redes
+                \item Regularização + Dropout
+                \item Introdução às CNNs
+                \item Revisão + Dúvidas
+                \item Avaliação 1
+            \end{enumerate}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Tópicos Avançados (Semanas 8-16):}
+            \begin{enumerate}
+                \setcounter{enumi}{8}
+                \item Transfer Learning
+                \item Arquiteturas de CNNs
+                \item Técnicas Avançadas (Data Aug.)
+                \item Texto + Word Vectors
+                \item RNNs para Sequências
+                \item LSTMs + Aplicações
+                \item Revisão + Dúvidas
+                \item Avaliação 2
+            \end{enumerate}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Logística do curso}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Horário e Local:}
+            \begin{itemize}
+                \item Quartas-feiras, 15h-18h
+                \item Primeira aula: 13/08/2025
+                \item Última aula: 26/11/2025
+            \end{itemize}
+            
+            \textbf{Material:}
+            \begin{itemize}
+                \item Slides (PDF)
+                \item Notebooks interativos
+                \item Notas de aula
+                \item Repositório GitHub
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Pré-requisitos:}
+            \begin{itemize}
+                \item Python
+                \item Álgebra linear
+                \item Cálculo diferencial
+                \item ML básico 
+            \end{itemize}
+            
+            \textbf{Avaliação:}
+            \begin{itemize}
+                \item Exercícios semanais
+                \item Projeto final 
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\section{Revisão de Machine Learning}
+\begin{frame}[c]{Por que revisar Machine Learning?}
+    \begin{itemize}
+        \item Redes neurais são uma \highlight{extensão} dos métodos de ML tradicionais
+        \item Muitos conceitos fundamentais são compartilhados:
+        \begin{itemize}
+            \item \highlight{Função de custo/perda}
+            \item \highlight{Otimização via gradiente}
+            \item Overfitting vs. underfitting
+            \item Validação cruzada
+        \end{itemize}
+        \item Entender o \highlight{gradiente} é crucial para entender redes neurais
+        \item Comparação de performance: NN vs. métodos tradicionais
+    \end{itemize}
+    
+    \vspace{0.5cm}
+    \begin{display}[Objetivo da Semana 1]
+        Implementar \highlight{descida de gradiente} do zero e entender sua dinâmica
+    \end{display}
+\end{frame}
+
+
+
+\begin{frame}[c]{O que é Machine Learning?}
+    \begin{center}
+        \Large
+        \highlight{Machine Learning permite que computadores aprendam e façam inferências a partir de dados.}
+    \end{center}
+    
+    \vspace{1cm}
+    
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Programação Tradicional:}
+            \begin{itemize}
+                \item Regras explícitas
+                \item Comportamento determinístico
+                \item Limitado a cenários previstos
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Machine Learning:}
+            \begin{itemize}
+                \item Aprende padrões dos dados
+                \item Generaliza para novos casos
+                \item Adapta-se a complexidade
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Tipos de Machine Learning}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \begin{display}[Aprendizado Supervisionado]
+                \begin{itemize}
+                    \item Dados com \highlight{respostas conhecidas}
+                    \item Objetivo: prever respostas para novos dados
+                    \item Exemplos:
+                    \begin{itemize}
+                        \item Classificação de e-mails (spam/não spam)
+                        \item Previsão de preços de imóveis
+                        \item Diagnóstico médico
+                    \end{itemize}
+                \end{itemize}
+            \end{display}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \begin{display}[Aprendizado Não-Supervisionado]
+                \vspace{.4cm}
+                \begin{itemize}
+                    \item Dados \highlight{sem respostas}
+                    \item Objetivo: encontrar estruturas/padrões
+                    \item Exemplos:
+                    \begin{itemize}
+                        \item Segmentação de clientes
+                        \item Detecção de anomalias
+                        \item Redução de dimensionalidade
+                    \end{itemize}
+                \end{itemize}
+                \vspace{.4cm}
+            \end{display}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Tipos de Aprendizado Supervisionado}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \begin{display}[Regressão]
+                \vspace{.2cm}
+                \begin{itemize}
+                    \item Saída: valor \highlight{contínuo/numérico}
+                    \item Exemplos:
+                    \begin{itemize}
+                        \item Preço de uma casa: R\$ 450.000
+                        \item Temperatura amanhã: 23.5°C
+                        \item Vendas do próximo mês: 1.250 unidades
+                    \end{itemize}
+                    \item Métricas: RMSE, MAE, R²
+                \end{itemize}
+                \vspace{.2cm}
+            \end{display}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \begin{display}[Classificação]
+                \begin{itemize}
+                    \item Saída: \highlight{categoria/classe}
+                    \item Exemplos:
+                    \begin{itemize}
+                        \item E-mail: spam ou não spam
+                        \item Imagem: gato, cachorro ou pássaro
+                        \item Transação: fraudulenta ou legítima
+                    \end{itemize}
+                    \item Métricas: Acurácia, Precisão, Recall, F1
+                \end{itemize}
+            \end{display}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Vocabulário de Machine Learning}
+    \begin{itemize}
+        \item \textbf{Target (Alvo):} Variável que queremos prever
+        \begin{itemize}
+            \item Sinônimos: Resposta, Output, Variável Dependente, Labels
+        \end{itemize}
+        
+        \item \textbf{Features (Características):} Variáveis usadas para fazer a previsão
+        \begin{itemize}
+            \item Sinônimos: Preditores, Input, Variáveis Independentes, Atributos
+        \end{itemize}
+        
+        \item \textbf{Example (Exemplo):} Um único ponto de dados
+        \begin{itemize}
+            \item Sinônimos: Observação, Registro, Instância, Linha
+        \end{itemize}
+        
+        \item \textbf{Label (Rótulo):} Valor do target para um exemplo específico
+        \begin{itemize}
+            \item Sinônimos: Resposta, Valor-y, Categoria
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[c]{Pipeline de Aprendizado Supervisionado}
+    \begin{center}
+        \begin{tikzpicture}[
+            box/.style={rectangle, draw, minimum width=3cm, minimum height=1cm, align=center},
+            arrow/.style={->, thick}
+        ]
+        % Primeira linha
+        \node[box] (data) at (0,3) {Dados com\\respostas};
+        \node (plus1) at (2.5,3) {+};
+        \node[box] (model1) at (5,3) {Modelo};
+        \node (fit) at (7.5,3) {$\xrightarrow{\text{Ajustar}}$};
+        \node[box, fill=gray!30] (trained) at (10.5,3) {MODELO\\TREINADO};
+        
+        % Segunda linha
+        \node[box] (newdata) at (0,0) {Dados sem\\respostas};
+        \node (plus2) at (2.5,0) {+};
+        \node[box, fill=gray!30] (model2) at (5,0) {MODELO\\TREINADO};
+        \node (predict) at (7.5,0) {$\xrightarrow{\text{Predizer}}$};
+        \node[box] (predictions) at (10.5,0) {Previsões};
+        
+        % Seta conectando
+        \draw[arrow, dashed] (trained) -- (model2);
+        
+        % Labels
+        \node at (5,4.5) {\textbf{Fase de Treinamento}};
+        \node at (5,-1.5) {\textbf{Fase de Predição}};
+        \end{tikzpicture}
+    \end{center}
+\end{frame}
+
+\begin{frame}[c]{Dados de Treino e Teste}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Por que dividir os dados?}
+            \begin{itemize}
+                \item Avaliar \highlight{generalização} do modelo
+                \item Detectar \highlight{overfitting}
+                \item Simular cenário real de uso
+            \end{itemize}
+            
+            \vspace{0.5cm}
+            \textbf{Divisão típica:}
+            \begin{itemize}
+                \item 70-80\% para treino
+                \item 20-30\% para teste
+                \item Opcional: conjunto de validação
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \begin{display}[Processo]
+                \begin{enumerate}
+                    \item \textbf{Treinar} com dados de treino
+                    \item \textbf{Prever} nos dados de teste
+                    \item \textbf{Comparar} previsões com valores reais
+                    \item \textbf{Calcular} métricas de erro
+                \end{enumerate}
+            \end{display}
+            
+            \begin{attention}[Importante]
+                NUNCA use dados de teste durante o treinamento!
+            \end{attention}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Underfitting vs. Overfitting}
+    \begin{columns}[c]
+        \begin{column}{0.33\textwidth}
+            \centering
+            \textbf{Underfitting}\\
+            \vspace{0.1cm}
+            \begin{tikzpicture}[scale=0.8]
+                % Pontos de dados
+                \foreach \x/\y in {0.5/1.2, 1/1.5, 1.5/2.1, 2/2.8, 2.5/3.2, 3/3.8, 3.5/4.1}
+                    \fill (\x,\y) circle (2pt);
+                % Linha reta (underfitting)
+                \draw[thick, blue] (0,0.8) -- (4,4.5);
+                \draw[->] (0,0) -- (4.5,0);
+                \draw[->] (0,0) -- (0,5);
+            \end{tikzpicture}
+            \begin{itemize}
+                \small
+                \item Modelo muito simples
+                \item Alto bias
+                \item Baixa variância
+                \item Erro alto no treino e teste
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.33\textwidth}
+            \centering
+            \textbf{Na medida certa}\\
+            \vspace{0.1cm}
+            \begin{tikzpicture}[scale=0.8]
+                % Pontos de dados
+                \foreach \x/\y in {0.5/1.2, 1/1.5, 1.5/2.1, 2/2.8, 2.5/3.2, 3/3.8, 3.5/4.1}
+                    \fill (\x,\y) circle (2pt);
+                % Curva suave
+                \draw[thick, green!60!black] plot[smooth,tension=0.6] coordinates {(0.3,1) (1,1.5) (2,2.8) (3,3.8) (3.7,4.2)};
+                \draw[->] (0,0) -- (4.5,0);
+                \draw[->] (0,0) -- (0,5);
+            \end{tikzpicture}
+            \begin{itemize}
+                \small
+                \item Complexidade adequada
+                \item Balanceado
+                \item Boa generalização
+                \item Erro baixo no treino e teste
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.33\textwidth}
+            \centering
+            \textbf{Overfitting}\\
+            \vspace{0.1cm}
+            \begin{tikzpicture}[scale=0.8]
+                % Pontos de dados
+                \foreach \x/\y in {0.5/1.2, 1/1.5, 1.5/2.1, 2/2.8, 2.5/3.2, 3/3.8, 3.5/4.1}
+                    \fill (\x,\y) circle (2pt);
+                % Curva complexa
+                \draw[thick, red] plot[smooth,tension=0.3] coordinates {(0.5,1.2) (0.8,1.8) (1,1.5) (1.3,1.9) (1.5,2.1) (1.8,2.5) (2,2.8) (2.3,3.0) (2.5,3.2) (2.8,3.5) (3,3.8) (3.2,3.9) (3.5,4.1)};
+                \draw[->] (0,0) -- (4.5,0);
+                \draw[->] (0,0) -- (0,5);
+            \end{tikzpicture}
+            \begin{itemize}
+                \small
+                \item Modelo muito complexo
+                \item Baixo bias
+                \item Alta variância
+                \item Erro baixo no treino, alto no teste
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Métricas de Avaliação Básicas}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Para Regressão:}
+            \begin{itemize}
+                \item RMSE (Root Mean Square Error) $$\text{RMSE} = \sqrt{\frac{1}{n}\sum_{i=1}^{n}(y_i - \hat{y}_i)^2}$$
+                \item MAE (Mean Absolute Error) $$\text{MAE} = \frac{1}{n}\sum_{i=1}^{n}|y_i - \hat{y}_i|$$
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Para Classificação:}
+            \begin{itemize}
+                \item Acurácia $$\text{Acc} = \frac{\text{Previsões Corretas}}{\text{Total de Previsões}}$$
+                \item Precisão e Recall $$\text{Prec} = \frac{TP}{TP + FP}, \quad \text{Rec} = \frac{TP}{TP + FN}$$
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Problema de Regressão Linear}
+    \textbf{Modelo:} $y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \varepsilon$
+    \vspace{.2cm}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Dados conhecidos:}
+            \begin{itemize}
+                \item $\beta_0 = 1.5$ (intercepto)
+                \item $\beta_1 = 2$ (coef. de $x_1$)
+                \item $\beta_2 = 5$ (coef. de $x_2$)
+                \item $x_1, x_2 \sim \text{Uniforme}[0,10]$
+                \item $\varepsilon \sim \mathcal{N}(0, 0.5^2)$
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Objetivo:}
+            \begin{itemize}
+                \item Estimar $\hat{\beta_0}, \hat{\beta_1}, \hat{\beta_2}$
+                \item Métodos a comparar:
+                \begin{enumerate}
+                    \item Solução analítica
+                    \item Scikit-learn
+                    \item Descida de gradiente
+                \end{enumerate}
+            \end{itemize}
+        \end{column}
+    \end{columns}
+    
+    \vspace{0.5cm}
+    \begin{display}[Função de Custo (MSE)]
+        \begin{equation}
+            J(\boldsymbol{\beta}) = \frac{1}{2n}\sum_{i=1}^{n}(y_i - \hat{y_i})^2 = \frac{1}{2n}\sum_{i=1}^{n}(y_i - \boldsymbol{x_i}^T\boldsymbol{\beta})^2
+        \end{equation}
+    \end{display}
+\end{frame}
+
+\begin{frame}[c]{Solução Analítica vs. Numérica}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Solução Analítica:}
+            \begin{equation}
+                \hat{\boldsymbol{\beta}} = (X^TX)^{-1}X^T\mathbf{y}
+            \end{equation}
+            
+            \textbf{Vantagens:}
+            \begin{itemize}
+                \item Solução exata
+                \item Uma única operação
+                \item Computacionalmente rápida (problemas pequenos)
+            \end{itemize}
+            
+            \textbf{Desvantagens:}
+            \begin{itemize}
+                \item Inversão de matriz: $O(n^3)$
+                \item Problemas numéricos
+                \item Não escala para grandes dados
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Descida de Gradiente:}
+            \begin{equation}
+                \boldsymbol{\beta}^{(t+1)} = \boldsymbol{\beta}^{(t)} - \alpha \nabla J(\boldsymbol{\beta}^{(t)})
+            \end{equation}
+            
+            \textbf{Vantagens:}
+            \begin{itemize}
+                \item Escala para grandes dados
+                \item Aplicável a funções não-lineares
+                \item Base para redes neurais
+                \item Flexibilidade
+            \end{itemize}
+            
+            \textbf{Desvantagens:}
+            \begin{itemize}
+                \item Solução aproximada
+                \item Hiperparâmetros ($\alpha$, iterações)
+                \item Convergência pode ser lenta
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\section{Descida de Gradiente}
+
+\begin{frame}[c]{Intuição Geométrica do Gradiente}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Imagine:} Você está no topo de uma montanha e quer descer até o vale mais baixo.
+            
+            \vspace{0.5cm}
+            \textbf{Estratégia:}
+            \begin{enumerate}
+                \item Olhe ao seu redor
+                \item Encontre a direção mais íngreme
+                \item Dê um passo nessa direção
+                \item Repita até chegar ao vale
+            \end{enumerate}
+            
+            \vspace{0.5cm}
+            O \highlight{gradiente} aponta para a direção de maior subida. Logo, o \highlight{gradiente negativo} aponta para a maior descida!
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \centering
+            \begin{tikzpicture}[scale=1.2]
+                % Função de custo (parábola)
+                \draw[thick, blue!60] plot[smooth,domain=-2:2] (\x, {0.5*\x*\x + 0.5});
+                
+                % Pontos da trajetória
+                \fill[red] (1.5, 1.625) circle (2pt) node[above] {Início};
+                \draw[->, red, thick] (1.5, 1.625) -- (1.0, 1.3);
+                \fill[red] (1.0, 1.0) circle (2pt);
+                \draw[->, red, thick] (1.0, 1.0) -- (0.5, 0.8);
+                \fill[red] (0.5, 0.625) circle (2pt);
+                \draw[->, red, thick] (0.5, 0.625) -- (0.1, 0.55);
+                \fill[green] (0, 0.5) circle (2pt) node[below] {Mínimo};
+                
+                % Eixos
+                \draw[->] (-2.5, 0) -- (2.5, 0) node[right] {$\beta$};
+                \draw[->] (0, 0) -- (0, 3) node[above] {$J(\beta)$};
+                
+                % Label
+                \node at (0, -0.8) {Trajetória da Descida de Gradiente};
+            \end{tikzpicture}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% Seção: Descida de Gradiente
+\section{Descida de Gradiente}
+\begin{frame}
+    \frametitle{Algoritmo de Descida de Gradiente}
+    \vspace{.25cm}
+    \begin{display}[Algoritmo Básico]
+        \begin{enumerate}
+            \item \textbf{Inicialização:} $\boldsymbol{\beta}^{(0)} = \text{valores iniciais}$
+            \item \textbf{Para} $t = 0, 1, 2, \ldots$ \textbf{até convergência:}
+            \begin{enumerate}
+                \item Calcular predições: $\hat{\mathbf{y}} = X\boldsymbol{\beta}^{(t)}$
+                \item Calcular erro: $\mathbf{e} = \mathbf{y} - \hat{\mathbf{y}}$
+                \item Calcular gradiente: $\nabla J = -\frac{1}{n}X^T\mathbf{e}$
+                \item Atualizar parâmetros: $\boldsymbol{\beta}^{(t+1)} = \boldsymbol{\beta}^{(t)} - \alpha \nabla J$
+            \end{enumerate}
+            \item \textbf{Retornar:} $\boldsymbol{\beta}^{(T)}$
+        \end{enumerate}
+    \end{display}
+    
+    \vspace{0.3cm}
+    \textbf{Gradiente do MSE:}
+    \begin{equation}
+        \frac{\partial J}{\partial \beta_j} = -\frac{1}{n}\sum_{i=1}^{n}(y_i - \hat{y_i}) \cdot x_{ij}
+    \end{equation}
+\end{frame}
+
+% Seção: Gradiente Estocástico
+\section{Gradiente Estocástico (SGD)}
+\begin{frame}
+    \frametitle{Batch vs. Stochastic Gradient Descent}
+    
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Batch Gradient Descent:}
+            \begin{itemize}
+                \item Usa \textbf{todos} os dados por iteração
+                \item Gradiente exato
+                \item Convergência suave
+                \item Computacionalmente caro
+            \end{itemize}
+            
+            \begin{equation}
+                \nabla J = \frac{1}{n}\sum_{i=1}^{n} \nabla J_i
+            \end{equation}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Stochastic Gradient Descent:}
+            \begin{itemize}
+                \item Usa \textbf{uma amostra} por iteração
+                \item Gradiente aproximado
+                \item Convergência com ruído
+                \item Computacionalmente eficiente
+            \end{itemize}
+            
+            \begin{equation}
+                \nabla J \approx \nabla J_i
+            \end{equation}
+        \end{column}
+    \end{columns}
+
+    \begin{display}[Vantagens do SGD]
+        \begin{itemize}
+            \item Escala para milhões de amostras
+            \item Pode escapar de mínimos locais (ruído = benefício!)
+            \item Convergência online (dados chegando continuamente)
+        \end{itemize}
+    \end{display}
+\end{frame}
+
+\begin{frame}
+    \frametitle{SGD: Ordem dos Dados Importa!}
+    
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Sem embaralhamento:}
+            \begin{itemize}
+                \item Mesma ordem a cada época
+                \item Padrões sistemáticos
+                \item Convergência tendenciosa
+                \item Ciclos na trajetória
+            \end{itemize}
+            
+            \textbf{Problema:} Se os dados têm ordem específica, o algoritmo pode ``memorizar'' essa ordem.
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Com embaralhamento:}
+            \begin{itemize}
+                \item Ordem aleatória a cada época
+                \item Reduz viés sistemático
+                \item Convergência mais robusta
+                \item Melhor exploração
+            \end{itemize}
+            
+            \textbf{Solução:} Embaralhar dados no início de cada época.
+        \end{column}
+    \end{columns}
+    
+    \vspace{0.5cm}
+    \begin{attention}[Exercício no Notebook]
+        Implemente SGD com e sem embaralhamento e compare as trajetórias!
+    \end{attention}
+\end{frame}
+
+
+\begin{frame}
+    \frametitle{Análises a Fazer}
+    
+    \begin{enumerate}
+        \item \textbf{Comparação de Métodos:}
+        \begin{itemize}
+            \item Os três métodos convergem para o mesmo resultado?
+            \item Qual é o mais rápido? Qual é o mais preciso?
+        \end{itemize}
+        
+        \item \textbf{Experimentos com Taxa de Aprendizado:}
+        \begin{itemize}
+            \item $\alpha = 0.00001$ (muito pequeno)
+            \item $\alpha = 0.001$ (adequado)
+            \item $\alpha = 0.1$ (muito grande)
+        \end{itemize}
+        
+        \item \textbf{Visualização da Trajetória:}
+        \begin{itemize}
+            \item Plotar o caminho no espaço de parâmetros
+            \item Plotar a evolução da função de custo
+            \item Identificar ponto de convergência
+        \end{itemize}
+        
+        \item \textbf{SGD com Embaralhamento:}
+        \begin{itemize}
+            \item Implementar versão estocástica
+            \item Comparar com e sem embaralhamento
+        \end{itemize}
+    \end{enumerate}
+\end{frame}
+
+
+
+\begin{frame}[c]{Critérios de Convergência}
+    
+    \textbf{Como saber quando parar o algoritmo?}
+    
+    \begin{enumerate}
+        \item \textbf{Convergência do gradiente:}
+        \begin{equation}
+            \|\nabla J(\boldsymbol{\beta}^{(t)})\| < \varepsilon_1
+        \end{equation}
+        
+        \item \textbf{Convergência dos parâmetros:}
+        \begin{equation}
+            \|\boldsymbol{\beta}^{(t+1)} - \boldsymbol{\beta}^{(t)}\| < \varepsilon_2
+        \end{equation}
+        
+        \item \textbf{Convergência da função de custo:}
+        \begin{equation}
+            |J(\boldsymbol{\beta}^{(t+1)}) - J(\boldsymbol{\beta}^{(t)})| < \varepsilon_3
+        \end{equation}
+        
+        \item \textbf{Número máximo de iterações:} $t > T_{\max}$
+    \end{enumerate}
+
+\end{frame}
+
+\begin{frame}[c]{Visualização das Trajetórias}
+    
+    \textbf{Análise visual é fundamental para entender convergência:}
+        \vspace{0.5cm}
+
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Plots importantes:}
+            \begin{itemize}
+                \item Trajetória no espaço de parâmetros
+                \item Evolução da função de custo
+                \item Curvas de nível + trajetória
+                \item Comparação SGD vs. Batch GD
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{O que observar:}
+            \begin{itemize}
+                \item Convergência suave vs. oscilante
+                \item Velocidade de convergência
+                \item Ponto final vs. solução analítica
+                \item Efeito da taxa de aprendizado
+            \end{itemize}
+        \end{column}
+    \end{columns}
+    
+
+\end{frame}
+
+\section{Conceitos Avançados}
+
+\begin{frame}[c]{Momentum e Algoritmos Avançados}
+    
+    \textbf{Limitações do GD básico:}
+    \begin{itemize}
+        \item Pode ficar \highlight{oscilando} em vales estreitos
+        \item Convergência \highlight{lenta} em direções de pouca curvatura
+        \item Dificuldade com \highlight{mínimos locais}
+    \end{itemize}
+    
+    \vspace{0.5cm}
+    
+    \begin{defi}{SGD com Momentum}{momentum}
+        \begin{align}
+            \mathbf{v}^{(t+1)} &= \gamma \mathbf{v}^{(t)} + \alpha \nabla J(\boldsymbol{\beta}^{(t)}) \\
+            \boldsymbol{\beta}^{(t+1)} &= \boldsymbol{\beta}^{(t)} - \mathbf{v}^{(t+1)}
+        \end{align}
+        onde $\gamma \in [0,1)$ é o coeficiente de momentum.
+    \end{defi}
+    
+    \textbf{Algoritmos mais modernos:} Adam, RMSprop, AdaGrad (veremos nas próximas aulas)
+\end{frame}
+
+\begin{frame}[c]{Resumo da Aula}
+    
+    \begin{display}[O que aprendemos hoje]
+        \begin{itemize}
+            \item Revisão de conceitos fundamentais de ML
+            \item Regressão linear como base para redes neurais
+            \item \highlight{Descida de gradiente}: algoritmo e implementação
+            \item Importância da \highlight{taxa de aprendizado}
+            \item \highlight{SGD vs. Batch GD}
+            \item Efeito do \highlight{embaralhamento} em SGD
+            \item Critérios de convergência e visualização
+            \item Introdução ao \highlight{momentum}
+        \end{itemize}
+    \end{display}
+
+\end{frame}   
+\begin{frame}[c]{Resumo da Aula}
+    \begin{display}[Próxima semana: Introdução às Redes Neurais]
+        \begin{itemize}
+            \item Do neurônio biológico ao artificial
+            \item \highlight{Perceptron} e funções de ativação
+            \item Primeira rede neural \highlight{multi-camadas}
+            \item Por que precisamos de \highlight{não-linearidade}?
+        \end{itemize}
+    \end{display}
+\end{frame}
+
+\begin{frame}[c, noframenumbering, plain]
+    \frametitle{~}
+        \vfill
+        \begin{center}
+            {\Huge Obrigado!}\vspace{1.5em}\\
+            {\Large \highlight{Alguma dúvida?}}\\
+        \end{center}
+        \vfill
+        \begin{center}
+            {\small Agora vamos para os exercícios!}
+        \end{center}
+\end{frame}
+
+\end{document}
