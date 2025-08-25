@@ -1,0 +1,450 @@
+\documentclass[xcolor=dvipsnames,t,aspectratio=169]{beamer}
+
+\usecolortheme{rose}
+\usecolortheme{dolphin}
+\usetheme{Boadilla}
+
+\input{../../templates/slides/imports}
+\input{../../templates/slides/settings}
+\input{../../templates/slides/commands}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, shapes}
+\usepackage{algorithmic}
+
+\titlegraphic{
+    \includegraphics[scale = 0.5]{../../templates/slides/logo}
+}
+
+\logo{
+\begin{tikzpicture}[overlay,remember picture]
+\node[left=1.1cm, below=0.2cm] at (current page.30){
+    \includegraphics[width=0.1\textwidth]{../../templates/slides/logo}};
+\end{tikzpicture}
+}
+
+\newcommand{\highlight}[1]{{\color{nes_dark_orange} #1}}
+
+\title{Retropropagação em Redes Neurais} 
+
+\author{
+    Eduardo Adame
+}
+
+\date{{\color{nes_dark_purple}  \textbf{Redes Neurais}\\[0.5em] 20 de agosto de 2025 }}
+
+\begin{document}
+
+\frame[plain]{\titlepage}
+\setcounter{framenumber}{0}
+
+\section{Introdução ao Backpropagation}
+\begin{frame}[c]{Como Treinar uma Rede Neural?}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Processo de Treinamento:}
+            \begin{itemize}
+                \item Inserir dados de treino
+                \item Obter a saída da rede
+                \item Comparar com respostas corretas
+                \item Calcular função de perda $J$
+                \item \highlight{Ajustar pesos e repetir!}
+            \end{itemize}
+            
+            \vspace{0.5cm}
+            \textbf{Backpropagation:}\\
+            Usa cálculo para determinar como ajustar cada peso
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \begin{tikzpicture}[scale=0.8]
+                % Rede simples
+                \node[circle, draw, fill=cyan!30] (x1) at (0, 1.5) {$x_1$};
+                \node[circle, draw, fill=cyan!30] (x2) at (0, 0) {$x_2$};
+                \node[circle, draw, fill=cyan!30] (x3) at (0, -1.5) {$x_3$};
+                
+                \foreach \i in {1,2,3} {
+                    \node[circle, draw, fill=orange!40] (h\i) at (3, 2-\i) {$\sigma$};
+                }
+                
+                \node[circle, draw, fill=gray!50] (y) at (6, 0) {$\hat{y}$};
+                
+                % Conexões
+                \foreach \x in {1,2,3} {
+                    \foreach \h in {1,2,3} {
+                        \draw[-latex, yellow!70!black] (x\x) -- (h\h);
+                    }
+                }
+                
+                \foreach \h in {1,2,3} {
+                    \draw[-latex, yellow!70!black] (h\h) -- (y);
+                }
+                
+                % Labels
+                \node[above] at (1.5, 2) {$W^{(1)}$};
+                \node[above] at (4.5, 1.5) {$W^{(2)}$};
+            \end{tikzpicture}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Descida do Gradiente em Redes Neurais}
+    \begin{display}[Algoritmo de Treinamento]
+        \begin{enumerate}
+            \item \textbf{Fazer predição} (forward pass)
+            \item \textbf{Calcular perda} $J(\mathbf{y}, \hat{\mathbf{y}})$
+            \item \highlight{Calcular gradiente} da função de perda em relação aos parâmetros
+            \item \textbf{Atualizar parâmetros} dando um passo na direção oposta
+            \item \textbf{Iterar} até convergência
+        \end{enumerate}
+    \end{display}
+    
+    \begin{attention}[Questão Central]
+        Como calcular $\dfrac{\partial J}{\partial W_k}$ para cada peso $W_k$ na rede?
+    \end{attention}
+    
+    \begin{center}
+        \textbf{Resposta:} \highlight{Regra da Cadeia!}
+    \end{center}
+\end{frame}
+
+\begin{frame}[c]{Forward Propagation}
+    \begin{columns}[c]
+        \begin{column}{0.4\textwidth}
+            \textbf{Etapas do Forward Pass:}
+            \begin{enumerate}
+                \item Inserir entrada $\mathbf{x}$
+                \item Calcular cada camada sequencialmente
+                \item Obter saída $\hat{\mathbf{y}}$
+                \item Avaliar perda $J(\mathbf{y}, \hat{\mathbf{y}})$
+            \end{enumerate}
+        \end{column}
+        \begin{column}{0.6\textwidth}
+            \begin{tikzpicture}[scale=0.9]
+                % Camadas
+                \node[circle, draw, fill=cyan!30] (x1) at (0, 1) {$x_1$};
+                \node[circle, draw, fill=cyan!30] (x2) at (0, -1) {$x_2$};
+                
+                \foreach \i in {1,2} {
+                    \node[circle, draw, fill=orange!40] (h1\i) at (2.5, 1.5-\i*1.5) {};
+                }
+                
+                \foreach \i in {1,2} {
+                    \node[circle, draw, fill=orange!40] (h2\i) at (5, 1.5-\i*1.5) {};
+                }
+                
+                \node[circle, draw, fill=gray!50] (y) at (7.5, 0) {$\hat{y}$};
+                
+                % Setas indicando direção
+                \draw[->, ultra thick, blue] (0, -2.5) -- (7.5, -2.5) node[midway, below] {\textbf{Direção do Forward Pass}};
+                
+                % Conexões
+                \foreach \x in {1,2} {
+                    \foreach \h in {1,2} {
+                        \draw[-latex, yellow!60!black] (x\x) -- (h1\h);
+                    }
+                }
+                
+                \foreach \h in {1,2} {
+                    \foreach \hh in {1,2} {
+                        \draw[-latex, yellow!60!black] (h1\h) -- (h2\hh);
+                    }
+                }
+                
+                \foreach \h in {1,2} {
+                    \draw[-latex, yellow!60!black] (h2\h) -- (y);
+                }
+                
+                % Anotações
+                \node at (2.5, 2.5) {$z^{(2)} = XW^{(1)}$};
+                \node at (2.5, -2) {$a^{(2)} = \sigma(z^{(2)})$};
+            \end{tikzpicture}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Backpropagation: A Intuição}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{O que queremos calcular:}
+            $$\frac{\partial J}{\partial W_k} \text{ para todo peso } W_k$$
+            
+            \vspace{0.5cm}
+            \textbf{Estratégia:}
+            \begin{itemize}
+                \item Começar do \highlight{erro na saída}
+                \item Propagar o erro \highlight{de trás para frente}
+                \item Usar a \highlight{regra da cadeia} repetidamente
+                \item Calcular gradientes camada por camada
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \begin{tikzpicture}[scale=0.8]
+                % Rede
+                \node[circle, draw, fill=cyan!30] (x) at (0, 0) {$x$};
+                \node[circle, draw, fill=orange!40] (h1) at (2, 0) {$h_1$};
+                \node[circle, draw, fill=orange!40] (h2) at (4, 0) {$h_2$};
+                \node[circle, draw, fill=gray!50] (y) at (6, 0) {$\hat{y}$};
+                
+                \draw[-latex] (x) -- (h1) node[midway, above] {$W^{(1)}$};
+                \draw[-latex] (h1) -- (h2) node[midway, above] {$W^{(2)}$};
+                \draw[-latex] (h2) -- (y) node[midway, above] {$W^{(3)}$};
+                
+                % Backprop arrows
+                \draw[->, ultra thick, red, dashed] (6, -1.5) -- (0, -1.5) node[midway, below] {\textbf{Direção do Backprop}};
+                
+                % Gradientes
+                \node[red] at (6, 1) {$\frac{\partial J}{\partial \hat{y}}$};
+                \node[red] at (4, 1) {$\frac{\partial J}{\partial h_2}$};
+                \node[red] at (2, 1) {$\frac{\partial J}{\partial h_1}$};
+            \end{tikzpicture}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Cálculo dos Gradientes}
+    \begin{display}[Fórmulas do Backpropagation]
+        Para uma rede de 3 camadas com ativação sigmoid:
+        
+        \vspace{0.3cm}
+        \begin{align}
+            \frac{\partial J}{\partial W^{(3)}} &= (\hat{\mathbf{y}} - \mathbf{y}) \cdot a^{(3)} \\[0.5em]
+            \frac{\partial J}{\partial W^{(2)}} &= (\hat{\mathbf{y}} - \mathbf{y}) \cdot W^{(3)} \cdot \sigma'(z^{(3)}) \cdot a^{(2)} \\[0.5em]
+            \frac{\partial J}{\partial W^{(1)}} &= (\hat{\mathbf{y}} - \mathbf{y}) \cdot W^{(3)} \cdot \sigma'(z^{(3)}) \cdot W^{(2)} \cdot \sigma'(z^{(2)}) \cdot \mathbf{x}
+        \end{align}
+    \end{display}
+    
+    % \begin{attention}[Lembre-se]
+    %     Para a função sigmoid: $\sigma'(z) = \sigma(z) \cdot (1 - \sigma(z))$
+    % \end{attention}
+\end{frame}
+
+\begin{frame}[c]{Problema do Gradiente Desvanecente}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{O Problema:}
+            \begin{itemize}
+                \item $\sigma'(z) = \sigma(z)(1-\sigma(z)) \leq 0.25$
+                \item Gradientes ficam \highlight{muito pequenos} em camadas iniciais
+                \item Multiplicação de muitos valores $< 1$
+                \item Aprendizado \highlight{extremamente lento} ou \highlight{para}
+            \end{itemize}
+            
+            \vspace{0.5cm}
+            \textbf{Solução:}
+            \begin{itemize}
+                \item Usar outras funções de ativação
+                \item ReLU: $f(z) = \max(0, z)$
+                \item Leaky ReLU, tanh, etc.
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \begin{tikzpicture}[scale=0.9]
+                % Gráfico sigmoid
+                \draw[->] (-2, 0) -- (2, 0) node[right] {$z$};
+                \draw[->] (0, -0.5) -- (0, 2) node[above] {$\sigma'(z)$};
+                
+                % Curva da derivada
+                \draw[blue, ultra thick, domain=-2:2, smooth, variable=\x]
+                    plot (\x, {1.5*exp(-\x*\x)});
+                
+                % Valor máximo
+                \draw[dashed, red] (-2, 0.375) -- (2, 0.375);
+                \node[red] at (2.5, 0.375) {$0.25$};
+                
+                % Anotação
+                \node[text width=3cm, align=center] at (0, -1.5) {
+                    \small Derivada sempre $\leq 0.25$
+                };
+            \end{tikzpicture}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Funções de Ativação Alternativas}
+    \begin{columns}[c]
+        \begin{column}{0.33\textwidth}
+            \centering
+            \textbf{Sigmoid}
+            \begin{tikzpicture}[scale=0.6]
+                \draw[->] (-2, 0) -- (2, 0);
+                \draw[->] (0, -0.5) -- (0, 1.5);
+                \draw[blue, ultra thick, domain=-2:2, smooth, variable=\x]
+                    plot (\x, {1/(1 + exp(-2*\x))});
+            \end{tikzpicture}
+            
+            $$\sigma(z) = \frac{1}{1+e^{-z}}$$
+            \textcolor{red}{Gradiente desvanece}
+        \end{column}
+        \begin{column}{0.33\textwidth}
+            \centering
+            \textbf{ReLU}
+            \begin{tikzpicture}[scale=0.6]
+                \draw[->] (-2, 0) -- (2, 0);
+                \draw[->] (0, -0.5) -- (0, 1.5);
+                \draw[blue, ultra thick] (-2, 0) -- (0, 0);
+                \draw[blue, ultra thick] (0, 0) -- (2, 1.5);
+            \end{tikzpicture}
+            
+            $$f(z) = \max(0, z)$$
+            \textcolor{green}{Gradiente preservado}
+        \end{column}
+        \begin{column}{0.33\textwidth}
+            \centering
+            \textbf{Tanh}
+            \begin{tikzpicture}[scale=0.6]
+                \draw[->] (-2, 0) -- (2, 0);
+                \draw[->] (0, -1.5) -- (0, 1.5);
+                \draw[blue, ultra thick, domain=-2:2, smooth, variable=\x]
+                    plot (\x, {tanh(\x)});
+            \end{tikzpicture}
+            
+            $$\tanh(z) = \frac{e^{2z}-1}{e^{2z}+1}$$
+            \textcolor{orange}{Centrado em zero}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Como Escolher a Função de Ativação}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Recomendações Práticas:}
+            \begin{itemize}
+                \item \highlight{Camadas ocultas:} ReLU (default), Leaky ReLU, ELU ou SiLU
+                \item \highlight{Camada de saída:}
+                \begin{itemize}
+                    \item Regressão: Linear ou nenhuma ativação
+                    \item Classificação binária: Sigmoid
+                    \item Classificação multiclasse: Softmax
+                    \item Valores positivos: ReLU
+                \end{itemize}
+                \item Experimente diferentes funções para seu problema específico
+                \item Monitore a proporção de neurônios mortos (para ReLU)
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+        \textbf{Regra de Ouro:}
+            \begin{center}
+                \highlight{Não existe uma função ideal para todos os casos!}
+            \end{center}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Algoritmo Completo de Backpropagation}
+    \begin{display}[Pseudocódigo]
+        \begin{algorithmic}
+            \STATE \textbf{Para} cada época de treinamento:
+            \STATE \quad \textbf{Para} cada batch de dados:
+            \STATE \quad \quad 1. \textbf{Forward Pass:}
+            \STATE \quad \quad \quad Calcular $a^{(l)} = \sigma(z^{(l)})$ para cada camada $l$
+            \STATE \quad \quad 2. \textbf{Calcular Perda:}
+            \STATE \quad \quad \quad $J = \frac{1}{m}\sum_{i=1}^{m} L(y_i, \hat{y}_i)$
+            \STATE \quad \quad 3. \textbf{Backward Pass:}
+            \STATE \quad \quad \quad Calcular $\delta^{(L)} = \nabla_a J \odot \sigma'(z^{(L)})$
+            \STATE \quad \quad \quad \textbf{Para} $l = L-1, L-2, ..., 1$:
+            \STATE \quad \quad \quad \quad $\delta^{(l)} = (W^{(l+1)})^T \delta^{(l+1)} \odot \sigma'(z^{(l)})$
+            \STATE \quad \quad 4. \textbf{Atualizar Pesos:}
+            \STATE \quad \quad \quad $W^{(l)} = W^{(l)} - \alpha \cdot \delta^{(l)} \cdot (a^{(l-1)})^T$
+        \end{algorithmic}
+    \end{display}
+\end{frame}
+
+
+\begin{frame}[c]{Exemplo Prático: Cálculo de um Gradiente}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Cenário Simplificado:}
+            \begin{itemize}
+                \item Rede com apenas 1 neurônio
+                \item Entrada $x$, peso $w$, bias $b$
+                \item $\hat{y} = \sigma(z)$ onde $z = w \cdot x + b$
+                \item Função de perda: $J = \frac{1}{2}(y - \hat{y})^2$
+            \end{itemize}
+            
+            \vspace{0.5cm}
+            \textbf{Cálculo do Gradiente:}
+            \footnotesize
+            \begin{align*}
+                \frac{\partial J}{\partial w} &= \frac{\partial J}{\partial \hat{y}} \cdot \frac{\partial \hat{y}}{\partial z} \cdot \frac{\partial z}{\partial w} \\
+                &= - (y - \hat{y}) \cdot \sigma'(z) \cdot x
+            \end{align*}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \begin{tikzpicture}[scale=0.9]
+                % Neurônio único
+                \node[circle, draw, fill=cyan!30] (x) at (0, 0) {$x$};
+                \node[circle, draw, fill=orange!40, minimum size=1.2cm] (neuron) at (2.5, 0) {$\sigma$};
+                \node[circle, draw, fill=gray!50] (y) at (5, 0) {$\hat{y}$};
+                
+                % Parâmetros
+                \draw[-latex] (x) -- (neuron) node[midway, above] {$w$};
+                \draw[-latex] (neuron) -- (y);
+                
+                % Bias
+                \node[circle, fill=cyan!10] (b) at (2.5, -1.5) {$b$};
+                \draw[-latex] (b) -- (neuron);
+                
+                % Fórmulas
+                \node[text width=3cm] at (2.5, -2.5) {
+                    \footnotesize
+                    $z = w \cdot x + b$ \\
+                    $\hat{y} = \sigma(z)$
+                };
+            \end{tikzpicture}
+        \end{column}
+    \end{columns}
+    
+    \vspace{0.5cm}
+    \begin{center}
+        \textbf{Esta mesma lógica se aplica a redes complexas através da regra da cadeia!}
+    \end{center}
+\end{frame}
+
+
+\begin{frame}[c]{Resumo e Próximos Passos}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{O que aprendemos:}
+            \begin{itemize}
+                \item Forward propagation
+                \item \highlight{Backpropagation}
+                \item Cálculo de gradientes
+                \item Regra da cadeia
+                \item Problema do gradiente desvanecente
+                \item Funções de ativação alternativas
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Próxima aula:}
+            \begin{itemize}
+                \item Otimizadores
+                \item Regularização (Dropout, L2)
+                \item Batch Normalization
+                \item Inicialização de pesos
+                \item Implementação prática
+            \end{itemize}
+        \end{column}
+    \end{columns}
+    
+    \vspace{0.5cm}
+    
+    \begin{center}
+        \Large
+        \highlight{Backpropagation é o coração do aprendizado profundo!}
+    \end{center}
+\end{frame}
+
+\begin{frame}[c, noframenumbering, plain]
+    \frametitle{~}
+    \vfill
+    \begin{center}
+        {\Huge Obrigado!}\vspace{1.5em}\\
+        {\Large \highlight{Alguma dúvida?}}\\
+    \end{center}
+    \vfill
+    \begin{center}
+        {\small Agora vamos implementar backpropagation!}
+    \end{center}
+\end{frame}
+
+\end{document}

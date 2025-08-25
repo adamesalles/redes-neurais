@@ -1,0 +1,373 @@
+
+\documentclass[a4paper,12pt]{article}
+
+% Pacotes essenciais
+\usepackage[brazil]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, shapes}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{minted}
+\usepackage{pgfplots}
+\usepackage[minted, most]{tcolorbox}
+\usepackage{algorithmic}
+
+\definecolor{nes_dark_purple}{HTML}{4E006B}
+\definecolor{nes_dark_orange}{HTML}{FF6B35}
+
+% Configuração de cabeçalho e rodapé
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Curso de Redes Neurais - Semana 2}
+\fancyhead[R]{20 de agosto de 2025}
+\fancyfoot[C]{\thepage}
+
+
+% Configuração de links
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=blue
+}
+
+
+% Título do documento
+\title{Notas de Aula - Semana 3 \\
+       \large Retropropagação em Redes Neurais\\
+       \itshape Curso de Redes Neurais}
+\author{Eduardo Adame}
+\date{27 de agosto de 2025}
+
+% Comandos personalizados
+\newcommand{\highlight}[1]{{\color{nes_dark_orange}\textbf{#1}}}
+\newcommand{\grad}[2]{\frac{\partial #1}{\partial #2}}
+
+% Ambientes personalizados
+\tcbuselibrary{theorems}
+\newtcbtheorem[number within=section]{definicao}{Definição}{
+    colback=blue!5!white,
+    colframe=blue!75!black,
+    fonttitle=\bfseries
+}{def}
+
+\newtcbtheorem[number within=section]{teorema}{Teorema}{
+    colback=green!5!white,
+    colframe=green!75!black,
+    fonttitle=\bfseries
+}{teo}
+
+\newtcbtheorem[number within=section]{exemplo}{Exemplo}{
+    colback=orange!5!white,
+    colframe=orange!75!black,
+    fonttitle=\bfseries
+}{ex}
+
+\newtcbtheorem[number within=section]{observacao}{Observação}{
+    colback=yellow!5!white,
+    colframe=yellow!75!black,
+    fonttitle=\bfseries
+}{obs}
+
+\newtcbtheorem[number within=section]{algoritmo}{Algoritmo}{
+    colback=purple!5!white,
+    colframe=purple!75!black,
+    fonttitle=\bfseries
+}{alg}
+
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Introdução}
+
+O algoritmo de retropropagação (\textit{backpropagation}) é o método fundamental para treinar redes neurais artificiais. Desenvolvido na década de 1980, este algoritmo revolucionou o campo de aprendizado de máquina ao permitir o treinamento eficiente de redes neurais profundas. Nesta aula, exploraremos os fundamentos matemáticos e a implementação prática deste algoritmo essencial.
+
+\section{Como Treinar uma Rede Neural}
+
+\subsection{O Problema do Treinamento}
+
+O treinamento de uma rede neural consiste em ajustar seus parâmetros (pesos e bias) para minimizar uma função de perda que mede a discrepância entre as predições da rede e os valores desejados. Este processo envolve:
+
+\begin{enumerate}
+    \item \textbf{Forward Pass}: Calcular a saída da rede para uma entrada dada
+    \item \textbf{Cálculo da Perda}: Medir o erro entre a saída e o valor esperado
+    \item \textbf{Backward Pass}: Calcular gradientes da perda em relação aos parâmetros
+    \item \textbf{Atualização}: Ajustar os parâmetros usando os gradientes
+\end{enumerate}
+
+\subsection{A Necessidade do Backpropagation}
+
+\begin{observacao}{Desafio Computacional}{comp}
+Em uma rede neural com milhões de parâmetros, calcular gradientes por diferenças finitas seria computacionalmente proibitivo. O backpropagation resolve este problema usando a regra da cadeia do cálculo para calcular todos os gradientes em uma única passada pela rede.
+\end{observacao}
+
+\section{Descida do Gradiente em Redes Neurais}
+
+\subsection{Algoritmo de Treinamento}
+
+O processo de treinamento de uma rede neural segue o algoritmo de descida do gradiente:
+
+\begin{algoritmo}{Descida do Gradiente para Redes Neurais}{gd_nn}
+\begin{algorithmic}[1]
+    \STATE Inicializar pesos $W^{(l)}$ e bias $b^{(l)}$ para todas as camadas $l$
+    \REPEAT
+        \STATE \textbf{Forward Pass:} Calcular saída $\hat{\mathbf{y}}$ para entrada $\mathbf{x}$
+        \STATE \textbf{Calcular Perda:} $J = L(\mathbf{y}, \hat{\mathbf{y}})$
+        \STATE \textbf{Backward Pass:} Calcular $\grad{J}{W^{(l)}}$ e $\grad{J}{b^{(l)}}$ para todo $l$
+        \STATE \textbf{Atualizar Parâmetros:}
+        \begin{align}
+            W^{(l)} &\leftarrow W^{(l)} - \alpha \grad{J}{W^{(l)}} \\
+            b^{(l)} &\leftarrow b^{(l)} - \alpha \grad{J}{b^{(l)}}
+        \end{align}
+    \UNTIL{convergência}
+\end{algorithmic}
+\end{algoritmo}
+
+\subsection{A Questão Central}
+
+A questão central que o backpropagation resolve é:
+
+\begin{center}
+    \Large
+    Como calcular eficientemente $\grad{J}{W_k}$ para cada peso $W_k$ na rede?
+\end{center}
+
+A resposta está na aplicação sistemática da \highlight{regra da cadeia} do cálculo.
+
+\section{Forward Propagation}
+
+\subsection{Computação Direta}
+
+O forward pass calcula a saída da rede camada por camada:
+
+\begin{definicao}{Forward Propagation}{forward}
+Para uma rede com $L$ camadas, o forward pass computa:
+\begin{align}
+    a^{(0)} &= \mathbf{x} \quad \text{(entrada)} \\
+    z^{(l)} &= W^{(l)} a^{(l-1)} + b^{(l)} \quad \text{para } l = 1, ..., L \\
+    a^{(l)} &= f^{(l)}(z^{(l)}) \quad \text{para } l = 1, ..., L \\
+    \hat{\mathbf{y}} &= a^{(L)} \quad \text{(saída)}
+\end{align}
+onde $f^{(l)}$ é a função de ativação da camada $l$.
+\end{definicao}
+
+\subsection{Exemplo de Forward Pass}
+
+\begin{exemplo}{Forward Pass em Rede de 2 Camadas}{fp2}
+Considere uma rede com arquitetura [2, 3, 1] (2 entradas, 3 neurônios ocultos, 1 saída).
+
+Dado $\mathbf{x} = [0.5, -0.2]^T$, e matrizes de pesos:
+$$W^{(1)} = \begin{bmatrix} 1 & -1 \\ 0.5 & 2 \\ -0.3 & 0.8 \end{bmatrix}, \quad 
+W^{(2)} = \begin{bmatrix} 0.7 & -0.5 & 1.2 \end{bmatrix}$$
+
+Com bias $b^{(1)} = [0.1, -0.2, 0.3]^T$ e $b^{(2)} = [0.15]$:
+
+\textbf{Camada 1:}
+\begin{align}
+z^{(1)} &= W^{(1)}\mathbf{x} + b^{(1)} = \begin{bmatrix} 0.8 \\ -0.25 \\ -0.01 \end{bmatrix} \\
+a^{(1)} &= \sigma(z^{(1)}) = \begin{bmatrix} 0.690 \\ 0.438 \\ 0.498 \end{bmatrix}
+\end{align}
+
+\textbf{Camada 2:}
+\begin{align}
+z^{(2)} &= W^{(2)}a^{(1)} + b^{(2)} = [0.561] \\
+\hat{y} &= \sigma(z^{(2)}) = 0.637
+\end{align}
+\end{exemplo}
+
+\section{Backpropagation: A Intuição}
+
+\subsection{Propagação do Erro}
+
+O backpropagation funciona propagando o erro da saída para as camadas anteriores. A intuição é:
+
+\begin{enumerate}
+    \item Calcular o erro na saída
+    \item Determinar quanto cada neurônio da última camada contribuiu para este erro
+    \item Propagar esta informação para camadas anteriores
+    \item Repetir até chegar na entrada
+\end{enumerate}
+
+\subsection{Fundamento Matemático: Regra da Cadeia}
+
+\begin{teorema}{Regra da Cadeia para Backpropagation}{chain}
+Para uma função composta $J = L(f_L(f_{L-1}(...f_1(\mathbf{x}))))$, o gradiente em relação aos parâmetros da camada $l$ é:
+
+$$\grad{J}{W^{(l)}} = \grad{J}{z^{(l)}} \cdot \grad{z^{(l)}}{W^{(l)}}$$
+
+onde $\grad{J}{z^{(l)}}$ é o "erro" propagado até a camada $l$.
+\end{teorema}
+
+\section{Cálculo dos Gradientes}
+
+\subsection{Notação Delta}
+
+Para simplificar a notação, definimos o erro da camada $l$ como:
+
+$$\delta^{(l)} = \grad{J}{z^{(l)}}$$
+
+Este termo representa o quanto a entrada líquida $z^{(l)}$ contribui para o erro total.
+
+\subsection{Equações do Backpropagation}
+
+\begin{definicao}{Equações Fundamentais do Backpropagation}{bp_eq}
+Para uma rede neural feedforward:
+
+\textbf{Erro da última camada:}
+$$\delta^{(L)} = \nabla_a J \odot f'(z^{(L)})$$
+
+\textbf{Erro das camadas anteriores:}
+$$\delta^{(l)} = (W^{(l+1)})^T \delta^{(l+1)} \odot f'(z^{(l)})$$
+
+\textbf{Gradientes dos pesos:}
+$$\grad{J}{W^{(l)}} = \delta^{(l)} (a^{(l-1)})^T$$
+
+\textbf{Gradientes dos bias:}
+$$\grad{J}{b^{(l)}} = \delta^{(l)}$$
+
+onde $\odot$ denota o produto de Hadamard (elemento por elemento).
+\end{definicao}
+
+\subsection{Exemplo Detalhado}
+
+\begin{exemplo}{Cálculo de Gradientes}{grad_calc}
+Continuando o exemplo anterior, suponha que o valor esperado seja $y = 1$ e usamos MSE como função de perda:
+
+$$J = \frac{1}{2}(y - \hat{y})^2 = \frac{1}{2}(1 - 0.637)^2 = 0.0659$$
+
+\textbf{Passo 1: Erro da última camada}
+\begin{align}
+\delta^{(2)} &= (0.637 - 1) \cdot \sigma'(0.561) \\
+&= -0.363 \cdot 0.637 \cdot (1 - 0.637) \\
+&= -0.084
+\end{align}
+
+\textbf{Passo 2: Propagar para camada anterior}
+\begin{align}
+\delta^{(1)} &= (W^{(2)})^T \delta^{(2)} \odot \sigma'(z^{(1)}) \\
+&= \begin{bmatrix} 0.7 \\ -0.5 \\ 1.2 \end{bmatrix} \cdot (-0.084) \odot \begin{bmatrix} 0.214 \\ 0.246 \\ 0.250 \end{bmatrix} \\
+&= \begin{bmatrix} -0.0126 \\ 0.0103 \\ -0.0252 \end{bmatrix}
+\end{align}
+
+\textbf{Passo 3: Calcular gradientes}
+\begin{align}
+\grad{J}{W^{(2)}} &= \delta^{(2)} \cdot (a^{(1)})^T = -0.084 \cdot [0.690, 0.438, 0.498] \\
+&= [-0.058, -0.037, -0.042]
+\end{align}
+\end{exemplo}
+
+\section{Problema do Gradiente Desvanecente}
+
+\subsection{Descrição do Problema}
+
+Um dos principais desafios no treinamento de redes neurais profundas é o problema do gradiente desvanecente.
+
+\begin{observacao}{Gradiente Desvanecente}{vanish}
+Quando usamos a função sigmoid, sua derivada satisfaz:
+$$\sigma'(z) = \sigma(z)(1 - \sigma(z)) \leq 0.25$$
+
+Em redes profundas, os gradientes são produtos de muitas derivadas:
+$$\delta^{(1)} = \delta^{(L)} \cdot \prod_{l=2}^{L} W^{(l)} \cdot f'(z^{(l-1)})$$
+
+Se cada $f'(z^{(l)}) \leq 0.25$, o gradiente decai exponencialmente com a profundidade.
+\end{observacao}
+
+\subsection{Análise Matemática}
+
+Para uma rede com $L$ camadas usando sigmoid:
+
+$$|\delta^{(1)}| \leq |\delta^{(L)}| \cdot \prod_{l=2}^{L} ||W^{(l)}|| \cdot 0.25$$
+
+Se $||W^{(l)}|| \approx 1$, então:
+$$|\delta^{(1)}| \leq |\delta^{(L)}| \cdot (0.25)^{L-1}$$
+
+Para $L = 10$ camadas:
+$$|\delta^{(1)}| \leq |\delta^{(10)}| \cdot (0.25)^9 \approx |\delta^{(10)}| \cdot 3.8 \times 10^{-6}$$
+
+\subsection{Consequências Práticas}
+
+\begin{enumerate}
+    \item \textbf{Aprendizado lento}: Camadas iniciais aprendem muito lentamente
+    \item \textbf{Estagnação}: Pesos podem parar de atualizar completamente
+    \item \textbf{Degradação do desempenho}: Redes muito profundas podem ter desempenho pior que redes rasas
+\end{enumerate}
+
+\section{Funções de Ativação Alternativas}
+
+\subsection{ReLU (Rectified Linear Unit)}
+
+\begin{definicao}{Função ReLU}{relu}
+A função ReLU e sua derivada são definidas como:
+\begin{align}
+    \text{ReLU}(z) &= \max(0, z) \\
+    \text{ReLU}'(z) &= \begin{cases}
+        1, & \text{se } z > 0 \\
+        0, & \text{se } z < 0 \\
+        \text{indefinido}, & \text{se } z = 0
+    \end{cases}
+\end{align}
+\end{definicao}
+
+\textbf{Vantagens da ReLU:}
+\begin{itemize}
+    \item Derivada constante (0 ou 1) - não há atenuação do gradiente
+    \item Computacionalmente eficiente
+    \item Promove esparsidade na rede
+    \item Convergência mais rápida
+\end{itemize}
+
+\textbf{Desvantagens:}
+\begin{itemize}
+    \item "Dying ReLU": neurônios podem ficar permanentemente inativos
+    \item Não é diferenciável em $z = 0$
+    \item Saída não limitada superiormente
+\end{itemize}
+
+\subsection{Função Tanh}
+
+\begin{definicao}{Função Tangente Hiperbólica}{tanh}
+\begin{align}
+    \tanh(z) &= \frac{e^{2z} - 1}{e^{2z} + 1} = \frac{2}{1 + e^{-2z}} - 1 \\
+    \tanh'(z) &= 1 - \tanh^2(z)
+\end{align}
+\end{definicao}
+
+\textbf{Vantagens da Tanh:}
+\begin{itemize}
+    \item Centrada em zero (saída entre -1 e 1)
+    \item Derivada máxima de 1 (melhor que sigmoid)
+    \item Gradientes mais fortes que sigmoid
+\end{itemize}
+
+\subsection{Leaky ReLU e Variantes}
+
+\begin{definicao}{Leaky ReLU}{leaky}
+\begin{align}
+    \text{LeakyReLU}(z) &= \begin{cases}
+        z, & \text{se } z > 0 \\
+        \alpha z, & \text{se } z \leq 0
+    \end{cases} \\
+    \text{LeakyReLU}'(z) &= \begin{cases}
+        1, & \text{se } z > 0 \\
+        \alpha, & \text{se } z \leq 0
+    \end{cases}
+\end{align}
+onde $\alpha$ é um pequeno valor positivo (tipicamente 0.01).
+\end{definicao}
+
+\end{document}
