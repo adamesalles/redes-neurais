@@ -9,7 +9,7 @@ Esse curso faz parte do Modulo IV do NES [Novo Ensino Suplementar](https://www.n
 ### 2025.1
 
 **Horário:** Quartas-feiras, 15:00 - 18:00 (UTC-3)  
-**Duração:** 12 semanas  
+**Duração:** 16 semanas  
 **Primeira aula:** 13 de agosto de 2025
 
 ## 📅 Cronograma do Curso
@@ -17,6 +17,7 @@ Esse curso faz parte do Modulo IV do NES [Novo Ensino Suplementar](https://www.n
 | Semana | Data | Tópico | Material |
 |--------|------|--------|----------|
 | 1 | 13/08/25 | Revisão de ML & Descida de Gradiente | [Slides](semana01/slides/) \| [Exercícios](semana01/exercicios/) \| [Notas](semana01/notas/) |
+| 2 | 20/08/25 | Introdução às Redes Neurais| [Slides](semana02/slides/) \| [Exercícios](semana02/exercicios/) \| [Notas](semana02/notas/) |
 
 ## 🎯 Objetivos do Curso
 

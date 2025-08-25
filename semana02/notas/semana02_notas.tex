@@ -1,0 +1,479 @@
+\documentclass[a4paper,12pt]{article}
+
+% Pacotes essenciais
+\usepackage[brazil]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, shapes}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{minted}
+\usepackage{pgfplots}
+\usepackage[minted, most]{tcolorbox}
+
+\definecolor{nes_dark_purple}{HTML}{4E006B}
+\definecolor{nes_dark_orange}{HTML}{FF6B35}
+
+% Configuração de cabeçalho e rodapé
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Curso de Redes Neurais - Semana 2}
+\fancyhead[R]{20 de agosto de 2025}
+\fancyfoot[C]{\thepage}
+
+% Configuração para código Python
+\AtBeginDocument{% 
+\newtcblisting[]{code}[2][]{%
+  colback=white!5,
+  sharp corners,
+  colframe=nes_dark_purple,
+  enhanced,
+  listing only,
+  listing engine=minted,
+  minted language=#2,
+  minted options={%
+      linenos,
+      breakbytokenanywhere=true,
+      breaklines,
+      autogobble,
+      fontsize=\scriptsize,
+      numbersep=2mm,
+      baselinestretch=1.1},
+  overlay={%
+       \begin{tcbclipinterior}
+           \fill[black!5] (frame.south west) rectangle ([xshift=4mm]frame.north west);
+       \end{tcbclipinterior}},
+  breakable,
+  title = {#1}
+}
+}
+
+% Configuração de links
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=blue
+}
+
+% Definição de ambientes personalizados
+\newtheorem{definicao}{Definição}[section]
+\newtheorem{teorema}{Teorema}[section]
+\newtheorem{exemplo}{Exemplo}[section]
+\newtheorem{observacao}{Observação}[section]
+
+% Título do documento
+\title{Notas de Aula - Semana 2 \\
+       \large Introdução às Redes Neurais\\
+       \itshape Curso de Redes Neurais}
+\author{Eduardo Adame}
+\date{20 de agosto de 2025}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+% Seção 1: Introdução
+\section{Introdução}
+
+Nesta segunda aula, fazemos a transição dos métodos tradicionais de machine learning para as redes neurais artificiais. Veremos como o conceito de regressão logística, que estudamos na semana passada, se generaliza para criar modelos muito mais poderosos e flexíveis.
+
+As redes neurais representam um paradigma fundamental no aprendizado de máquina moderno. Inspiradas pelo funcionamento do cérebro humano, essas estruturas computacionais são capazes de aprender representações hierárquicas complexas dos dados, tornando-se a base para os avanços recentes em visão computacional, processamento de linguagem natural e muitas outras áreas.
+
+\subsection{Objetivos de Aprendizagem}
+
+Ao final desta aula, o estudante será capaz de:
+\begin{itemize}
+    \item Compreender a inspiração biológica das redes neurais
+    \item Implementar um neurônio artificial (perceptron)
+    \item Entender a relação entre neurônios e regressão logística
+    \item Construir redes neurais feedforward simples
+    \item Realizar o forward pass usando operações matriciais
+    \item Identificar a necessidade de funções de ativação não-lineares
+\end{itemize}
+
+\subsection{Conexão com a Aula Anterior}
+
+Na semana passada, estudamos:
+\begin{itemize}
+    \item Regressão linear: $y = \mathbf{w}^T\mathbf{x} + b$
+    \item Descida de gradiente: $\mathbf{w}^{(t+1)} = \mathbf{w}^{(t)} - \alpha \nabla J(\mathbf{w}^{(t)})$
+    \item Função de custo MSE: $J(\mathbf{w}) = \frac{1}{2n}\sum_{i=1}^{n}(y_i - \hat{y}_i)^2$
+\end{itemize}
+
+Hoje veremos como esses conceitos se estendem para redes neurais, onde:
+\begin{itemize}
+    \item Cada neurônio realiza uma operação similar à regressão
+    \item Múltiplos neurônios são organizados em camadas
+    \item A descida de gradiente continua sendo o método de otimização
+\end{itemize}
+
+% Seção 2: Fundamentos Biológicos
+\section{Inspiração Biológica}
+
+\subsection{O Neurônio Biológico}
+
+O neurônio biológico é a unidade fundamental do sistema nervoso. Suas principais componentes são:
+
+\begin{itemize}
+    \item \textbf{Dendritos:} Recebem sinais de outros neurônios
+    \item \textbf{Corpo celular (soma):} Processa e integra os sinais recebidos
+    \item \textbf{Axônio:} Transmite o sinal de saída
+    \item \textbf{Sinapses:} Conexões com outros neurônios
+\end{itemize}
+
+O neurônio biológico funciona de forma simplificada assim:
+\begin{enumerate}
+    \item Recebe múltiplos sinais através dos dendritos
+    \item Integra esses sinais no corpo celular
+    \item Se a soma dos sinais excede um limiar, dispara um potencial de ação
+    \item Transmite o sinal através do axônio para outros neurônios
+\end{enumerate}
+
+\subsection{Do Biológico ao Artificial}
+
+O neurônio artificial é uma abstração matemática inspirada no neurônio biológico:
+
+\begin{center}
+\begin{tabular}{ll}
+\textbf{Neurônio Biológico} & \textbf{Neurônio Artificial} \\
+\hline
+Dendritos & Entradas ($x_1, x_2, ..., x_n$) \\
+Força sináptica & Pesos ($w_1, w_2, ..., w_n$) \\
+Corpo celular & Função de agregação ($\sum$) \\
+Limiar de ativação & Bias ($b$) \\
+Potencial de ação & Função de ativação ($f$) \\
+Axônio & Saída ($y$) \\
+\end{tabular}
+\end{center}
+
+% Seção 3: O Neurônio Artificial
+\section{O Neurônio Artificial}
+
+\subsection{Modelo Matemático}
+
+\begin{definicao}[Neurônio Artificial]
+Um neurônio artificial é uma unidade computacional que:
+\begin{enumerate}
+    \item Recebe um vetor de entrada $\mathbf{x} = [x_1, x_2, ..., x_n]^T$
+    \item Calcula uma combinação linear ponderada: $z = \mathbf{w}^T\mathbf{x} + b$
+    \item Aplica uma função de ativação: $a = f(z)$
+\end{enumerate}
+\end{definicao}
+
+Matematicamente:
+\begin{equation}
+    a = f\left(\sum_{i=1}^{n} w_i x_i + b\right) = f(\mathbf{w}^T\mathbf{x} + b)
+    \label{eq:neuron}
+\end{equation}
+
+onde:
+\begin{itemize}
+    \item $\mathbf{x} \in \mathbb{R}^n$ é o vetor de entrada
+    \item $\mathbf{w} \in \mathbb{R}^n$ é o vetor de pesos
+    \item $b \in \mathbb{R}$ é o bias (viés)
+    \item $z = \mathbf{w}^T\mathbf{x} + b$ é chamado de "net input" ou entrada líquida
+    \item $f: \mathbb{R} \rightarrow \mathbb{R}$ é a função de ativação
+    \item $a$ é a saída (ativação) do neurônio
+\end{itemize}
+
+\subsection{Relação com Regressão Logística}
+
+\begin{teorema}[Equivalência com Regressão Logística]
+Um neurônio artificial com função de ativação sigmoid é matematicamente equivalente à regressão logística.
+\end{teorema}
+
+\textbf{Demonstração:}
+Na regressão logística, temos:
+\begin{equation}
+    P(y=1|\mathbf{x}) = \sigma(\mathbf{w}^T\mathbf{x} + b) = \frac{1}{1 + e^{-(\mathbf{w}^T\mathbf{x} + b)}}
+\end{equation}
+
+Um neurônio com ativação sigmoid calcula:
+\begin{equation}
+    a = \sigma(z) = \sigma(\mathbf{w}^T\mathbf{x} + b) = \frac{1}{1 + e^{-(\mathbf{w}^T\mathbf{x} + b)}}
+\end{equation}
+
+Portanto, são idênticos! A diferença está na interpretação:
+\begin{itemize}
+    \item Regressão logística: modelo probabilístico para classificação binária
+    \item Neurônio: unidade computacional que pode ser combinada em rede
+\end{itemize}
+
+% Seção 4: Funções de Ativação
+\section{Funções de Ativação}
+
+\subsection{Por que Funções de Ativação?}
+
+Funções de ativação introduzem não-linearidade na rede neural. Sem elas, múltiplas camadas lineares colapsariam em uma única transformação linear.
+
+\begin{teorema}[Composição de Funções Lineares]
+A composição de qualquer número de transformações lineares é ainda uma transformação linear.
+\end{teorema}
+
+\textbf{Prova:}
+Sejam duas transformações lineares: $f_1(\mathbf{x}) = W_1\mathbf{x} + \mathbf{b}_1$ e $f_2(\mathbf{x}) = W_2\mathbf{x} + \mathbf{b}_2$.
+
+A composição é:
+\begin{align}
+    f_2(f_1(\mathbf{x})) &= W_2(W_1\mathbf{x} + \mathbf{b}_1) + \mathbf{b}_2 \\
+    &= W_2W_1\mathbf{x} + W_2\mathbf{b}_1 + \mathbf{b}_2 \\
+    &= W_{comp}\mathbf{x} + \mathbf{b}_{comp}
+\end{align}
+
+onde $W_{comp} = W_2W_1$ e $\mathbf{b}_{comp} = W_2\mathbf{b}_1 + \mathbf{b}_2$.
+
+\subsection{Função Sigmoid}
+
+A função sigmoid é uma das funções de ativação mais clássicas:
+
+\begin{definicao}[Função Sigmoid]
+\begin{equation}
+    \sigma(z) = \frac{1}{1 + e^{-z}}
+\end{equation}
+\end{definicao}
+
+\textbf{Propriedades:}
+\begin{itemize}
+    \item Domínio: $(-\infty, +\infty)$
+    \item Imagem: $(0, 1)$
+    \item Interpretação probabilística
+    \item Diferenciável em todo domínio
+    \item Saturação para valores extremos
+\end{itemize}
+
+\begin{teorema}[Derivada da Sigmoid]
+A derivada da função sigmoid tem uma forma elegante:
+\begin{equation}
+    \sigma'(z) = \sigma(z)(1 - \sigma(z))
+    \label{eq:sigmoid_derivative}
+\end{equation}
+\end{teorema}
+
+\textbf{Demonstração:}
+\begin{align}
+    \sigma'(z) &= \frac{d}{dz}\left(\frac{1}{1 + e^{-z}}\right) \\
+    &= \frac{d}{dz}(1 + e^{-z})^{-1} \\
+    &= -(1 + e^{-z})^{-2} \cdot (-e^{-z}) \\
+    &= \frac{e^{-z}}{(1 + e^{-z})^2} \\
+    &= \frac{1}{1 + e^{-z}} \cdot \frac{e^{-z}}{1 + e^{-z}} \\
+    &= \sigma(z) \cdot (1 - \sigma(z))
+\end{align}
+
+Esta propriedade será extremamente útil quando calcularmos gradientes na retropropagação.
+
+\subsection{Outras Funções de Ativação Comuns}
+
+\subsubsection{Tangente Hiperbólica (tanh)}
+\begin{equation}
+    \tanh(z) = \frac{e^z - e^{-z}}{e^z + e^{-z}} = \frac{2}{1 + e^{-2z}} - 1
+\end{equation}
+
+Propriedades:
+\begin{itemize}
+    \item Imagem: $(-1, 1)$
+    \item Centrada em zero
+    \item Derivada: $\tanh'(z) = 1 - \tanh^2(z)$
+\end{itemize}
+
+\subsubsection{ReLU (Rectified Linear Unit)}
+\begin{equation}
+    \text{ReLU}(z) = \max(0, z) = \begin{cases}
+        z & \text{se } z > 0 \\
+        0 & \text{caso contrário}
+    \end{cases}
+\end{equation}
+
+Propriedades:
+\begin{itemize}
+    \item Computacionalmente eficiente
+    \item Não satura para valores positivos
+    \item Problema do "dying ReLU"
+    \item Derivada: $\text{ReLU}'(z) = \begin{cases} 1 & \text{se } z > 0 \\ 0 & \text{caso contrário} \end{cases}$
+\end{itemize}
+
+% Seção 5: Redes Neurais Feedforward
+\section{Redes Neurais Feedforward}
+
+\subsection{Arquitetura em Camadas}
+
+Uma rede neural feedforward organiza neurônios em camadas sequenciais:
+
+\begin{definicao}[Rede Neural Feedforward]
+Uma rede neural feedforward é composta por:
+\begin{enumerate}
+    \item \textbf{Camada de entrada:} Recebe os dados (não realiza computação)
+    \item \textbf{Camadas ocultas:} Uma ou mais camadas de neurônios que processam informação
+    \item \textbf{Camada de saída:} Produz o resultado final
+\end{enumerate}
+\end{definicao}
+
+A informação flui em uma única direção: entrada $\rightarrow$ ocultas $\rightarrow$ saída.
+
+\subsection{Notação}
+
+Para uma rede com $L$ camadas:
+\begin{itemize}
+    \item $l$ denota o índice da camada, $l \in \{1, 2, ..., L\}$
+    \item $n^{(l)}$ é o número de neurônios na camada $l$
+    \item $W^{(l)} \in \mathbb{R}^{n^{(l-1)} \times n^{(l)}}$ é a matriz de pesos da camada $l-1$ para $l$
+    \item $\mathbf{b}^{(l)} \in \mathbb{R}^{n^{(l)}}$ é o vetor de bias da camada $l$
+    \item $\mathbf{z}^{(l)}$ é o vetor de net inputs da camada $l$
+    \item $\mathbf{a}^{(l)}$ é o vetor de ativações da camada $l$
+\end{itemize}
+
+\subsection{Forward Pass}
+
+O forward pass (propagação direta) calcula a saída da rede dado uma entrada:
+
+\begin{exemplo}[Forward Pass]
+Para uma entrada $\mathbf{x}$, o forward pass calcula iterativamente:
+\begin{align}
+    \mathbf{a}^{(0)} &= \mathbf{x} \\
+    \mathbf{z}^{(l)} &= W^{(l)T}\mathbf{a}^{(l-1)} + \mathbf{b}^{(l)} \quad \text{para } l = 1, ..., L \\
+    \mathbf{a}^{(l)} &= f^{(l)}(\mathbf{z}^{(l)}) \quad \text{para } l = 1, ..., L \\
+    \hat{\mathbf{y}} &= \mathbf{a}^{(L)}
+\end{align}
+\end{exemplo}
+
+\subsection{Representação Matricial}
+
+Para processar múltiplas amostras simultaneamente, usamos notação matricial:
+
+Seja $X \in \mathbb{R}^{m \times n^{(0)}}$ uma matriz com $m$ amostras (linhas).
+
+\begin{align}
+    A^{(0)} &= X \\
+    Z^{(l)} &= A^{(l-1)}W^{(l)} + \mathbf{1}_m\mathbf{b}^{(l)T} \\
+    A^{(l)} &= f^{(l)}(Z^{(l)}) \\
+    \hat{Y} &= A^{(L)}
+\end{align}
+
+onde $\mathbf{1}_m$ é um vetor coluna de uns de tamanho $m$.
+
+% Seção 6: Exemplo Prático
+\section{Exemplo Prático}
+
+\subsection{Rede com 2 Camadas Ocultas}
+
+Considere uma rede neural com:
+\begin{itemize}
+    \item Entrada: 3 features ($n^{(0)} = 3$)
+    \item Primeira camada oculta: 4 neurônios ($n^{(1)} = 4$)
+    \item Segunda camada oculta: 4 neurônios ($n^{(2)} = 4$)
+    \item Saída: 3 classes ($n^{(3)} = 3$)
+\end{itemize}
+
+\begin{exemplo}[Cálculo do Forward Pass]
+Dado $\mathbf{x} = [0.9, 0.2, 0.3]^T$ e pesos inicializados aleatoriamente, vamos calcular a saída.
+
+\textbf{Primeira camada oculta:}
+\begin{align}
+    \mathbf{z}^{(1)} &= W^{(1)T}\mathbf{x} + \mathbf{b}^{(1)} \\
+    \mathbf{a}^{(1)} &= \sigma(\mathbf{z}^{(1)})
+\end{align}
+
+Se $W^{(1)} \in \mathbb{R}^{3 \times 4}$ e $\mathbf{b}^{(1)} \in \mathbb{R}^4$, então $\mathbf{a}^{(1)} \in \mathbb{R}^4$.
+
+\textbf{Segunda camada oculta:}
+\begin{align}
+    \mathbf{z}^{(2)} &= W^{(2)T}\mathbf{a}^{(1)} + \mathbf{b}^{(2)} \\
+    \mathbf{a}^{(2)} &= \sigma(\mathbf{z}^{(2)})
+\end{align}
+
+\textbf{Camada de saída:}
+\begin{align}
+    \mathbf{z}^{(3)} &= W^{(3)T}\mathbf{a}^{(2)} + \mathbf{b}^{(3)} \\
+    \hat{\mathbf{y}} &= \text{softmax}(\mathbf{z}^{(3)})
+\end{align}
+\end{exemplo}
+
+\subsection{Função Softmax}
+
+Para problemas de classificação multiclasse, usamos softmax na camada de saída:
+
+\begin{definicao}[Função Softmax]
+\begin{equation}
+    \text{softmax}(\mathbf{z})_i = \frac{e^{z_i}}{\sum_{j=1}^{K} e^{z_j}}
+\end{equation}
+onde $K$ é o número de classes.
+\end{definicao}
+
+Propriedades:
+\begin{itemize}
+    \item Saída forma uma distribuição de probabilidade
+    \item $\sum_{i=1}^{K} \text{softmax}(\mathbf{z})_i = 1$
+    \item $0 < \text{softmax}(\mathbf{z})_i < 1$ para todo $i$
+\end{itemize}
+
+% Seção 7: Por que Redes Profundas?
+\section{Por que Redes Profundas?}
+
+\subsection{Limitações de um Único Neurônio}
+
+Um único neurônio (como na regressão logística) só pode aprender fronteiras de decisão lineares. Isso limita severamente os problemas que podem ser resolvidos.
+
+\begin{exemplo}[Problema XOR]
+O problema XOR não é linearmente separável:
+\begin{center}
+\begin{tabular}{cc|c}
+$x_1$ & $x_2$ & XOR \\
+\hline
+0 & 0 & 0 \\
+0 & 1 & 1 \\
+1 & 0 & 1 \\
+1 & 1 & 0 \\
+\end{tabular}
+\end{center}
+
+Não existe uma linha reta que separe as classes 0 e 1.
+\end{exemplo}
+
+\subsection{Poder das Redes Multicamadas}
+
+\begin{teorema}[Teorema da Aproximação Universal]
+Uma rede neural feedforward com uma única camada oculta contendo um número finito de neurônios pode aproximar qualquer função contínua em subconjuntos compactos de $\mathbb{R}^n$, sob suposições brandas sobre a função de ativação.
+\end{teorema}
+
+Este teorema, provado por Cybenko (1989) e Hornik (1991), garante que redes neurais são aproximadores universais de funções.
+
+\subsection{Profundidade vs. Largura}
+
+Embora uma única camada oculta seja teoricamente suficiente, redes profundas (múltiplas camadas) são mais eficientes:
+
+\begin{itemize}
+    \item \textbf{Redes rasas e largas:} Precisam de exponencialmente mais neurônios
+    \item \textbf{Redes profundas:} Aprendem representações hierárquicas
+    \item \textbf{Composicionalidade:} Camadas sucessivas aprendem features cada vez mais abstratas
+\end{itemize}
+
+\section{Conclusão}
+
+Nesta segunda aula, estabelecemos os fundamentos das redes neurais artificiais, fazendo a transição natural dos métodos tradicionais de machine learning para arquiteturas mais sofisticadas e poderosas.
+
+\subsection{Principais Conceitos Abordados}
+
+Exploramos os conceitos fundamentais que formam a base das redes neurais modernas:
+
+\begin{itemize}
+    \item A inspiração biológica dos neurônios artificiais e como ela se traduz em modelos matemáticos elegantes
+    \item A equivalência entre um neurônio artificial e a regressão logística, demonstrando a continuidade conceitual
+    \item A importância crítica das funções de ativação não-lineares para conferir poder expressivo às redes
+    \item A arquitetura feedforward e sua representação matricial eficiente
+    \item O forward pass como processo computacional fundamental
+\end{itemize}
+
+\end{document}

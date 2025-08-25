@@ -1,0 +1,713 @@
+\documentclass[xcolor=dvipsnames,t,aspectratio=169]{beamer}
+
+\usecolortheme{rose}
+\usecolortheme{dolphin}
+\usetheme{Boadilla}
+
+\input{../../templates/slides/imports}
+\input{../../templates/slides/settings}
+\input{../../templates/slides/commands}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, shapes}
+
+\titlegraphic{
+    \includegraphics[scale = 0.5]{../../templates/slides/logo}
+}
+
+\logo{
+\begin{tikzpicture}[overlay,remember picture]
+\node[left=1.1cm, below=0.2cm] at (current page.30){
+    \includegraphics[width=0.1\textwidth]{../../templates/slides/logo}};
+\end{tikzpicture}
+}
+
+\newcommand{\highlight}[1]{{\color{nes_dark_orange} #1}}
+
+\title{Introdução às Redes Neurais} 
+
+\author{
+    Eduardo Adame
+}
+
+\date{{\color{nes_dark_purple}  \textbf{Redes Neurais}\\[0.5em] 20 de agosto de 2025 }}
+
+\begin{document}
+
+\frame[plain]{\titlepage}
+\setcounter{framenumber}{0}
+
+\section{Revisão da Aula Anterior}
+\begin{frame}[c]{Revisão: Descida de Gradiente}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{O que aprendemos:}
+            \begin{itemize}
+                \item Conceitos fundamentais de ML
+                \item Regressão linear
+                \item \highlight{Descida de gradiente}
+                \item Taxa de aprendizado ($\alpha$)
+                \item SGD vs. Batch GD
+                \item Critérios de convergência
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Algoritmo básico:}
+            \begin{equation}
+                \boldsymbol{\beta}^{(t+1)} = \boldsymbol{\beta}^{(t)} - \alpha \nabla J(\boldsymbol{\beta}^{(t)})
+            \end{equation}
+            
+            \vspace{0.5cm}
+            \textbf{Hoje veremos:}
+            \begin{itemize}
+                \item Como isso se conecta com \highlight{redes neurais}
+                \item O papel do gradiente no \highlight{treinamento}
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\section{Motivação para Redes Neurais}
+\begin{frame}[c]{Motivação para Redes Neurais}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Inspiração Biológica:}
+            \begin{itemize}
+                \item Usar biologia como inspiração para modelo matemático
+                \item Receber sinais de neurônios anteriores
+                \item Gerar sinais (ou não) de acordo com as entradas
+                \item Passar sinais para próximos neurônios
+                \item Ao empilhar muitos neurônios, podemos criar modelos complexos
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \centering
+            \begin{tikzpicture}[scale=0.8]
+                % Neurônios de entrada
+                \node[circle, draw, fill=cyan!30] (x1) at (0, 2) {$x_1$};
+                \node[circle, draw, fill=cyan!30] (x2) at (0, 0) {$x_2$};
+                \node[circle, draw, fill=cyan!30] (x3) at (0, -2) {$x_3$};
+                
+                % Camada oculta
+                \node[circle, draw, fill=orange!40] (h1) at (3, 1.5) {$\sigma$};
+                \node[circle, draw, fill=orange!40] (h2) at (3, 0) {$\sigma$};
+                \node[circle, draw, fill=orange!40] (h3) at (3, -1.5) {$\sigma$};
+                
+                % Neurônio de saída
+                \node[circle, draw, fill=gray!50] (y) at (6, 0) {$y$};
+                
+                % Conexões
+                \foreach \x in {1,2,3} {
+                    \foreach \h in {1,2,3} {
+                        \draw[-latex, thick, yellow!80!black] (x\x) -- (h\h);
+                    }
+                }
+                
+                \foreach \h in {1,2,3} {
+                    \draw[-latex, thick, yellow!80!black] (h\h) -- (y);
+                }
+            \end{tikzpicture}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Estrutura de uma Rede Neural (Perceptron)}
+    \begin{center}
+        \begin{tikzpicture}[scale=1.2]
+            % Camada de entrada
+            \node[circle, draw, fill=cyan!30] (x1) at (0, 2) {$x_1$};
+            \node[circle, draw, fill=cyan!30] (x2) at (0, 0.5) {$x_2$};
+            \node[circle, draw, fill=cyan!30] (x3) at (0, -1) {$x_3$};
+            
+            % Primeira camada oculta
+            \foreach \i in {1,2,3,4} {
+                \node[circle, draw, fill=orange!40] (h1\i) at (3, 3-\i) {$\sigma$};
+            }
+            
+            % Segunda camada oculta
+            \foreach \i in {1,2,3,4} {
+                \node[circle, draw, fill=orange!40] (h2\i) at (6, 3-\i) {$\sigma$};
+            }
+            
+            % Camada de saída
+            \node[circle, draw, fill=gray!50] (y1) at (9, 1.5) {$\hat{y}_1$};
+            \node[circle, draw, fill=gray!50] (y2) at (9, 0) {$\hat{y}_2$};
+            \node[circle, draw, fill=gray!50] (y3) at (9, -1.5) {$\hat{y}_3$};
+            
+            % Conexões (simplificadas para clareza)
+            \foreach \x in {1,2,3} {
+                \foreach \h in {1,2,3,4} {
+                    \draw[-latex, yellow!60!black] (x\x) -- (h1\h);
+                }
+            }
+            
+            \foreach \h in {1,2,3,4} {
+                \foreach \hh in {1,2,3,4} {
+                    \draw[-latex, yellow!60!black] (h1\h) -- (h2\hh);
+                }
+            }
+            
+            \foreach \h in {1,2,3,4} {
+                \foreach \y in {1,2,3} {
+                    \draw[-latex, yellow!60!black] (h2\h) -- (y\y);
+                }
+            }
+            
+            % Labels
+            \node[below] at (0, -2) {\textbf{Entrada}};
+            \node[below] at (4.5, -2) {\textbf{Camadas Ocultas}};
+            \node[below] at (9, -2) {\textbf{Saída}};
+        \end{tikzpicture}
+    \end{center}
+    
+    \begin{itemize}
+        \item Pode ser vista como um \highlight{motor de computação} complicado
+        \item Vamos "treiná-la" usando nossos dados de treino
+        \item Então (esperamos) ela dará boas respostas em novos dados
+    \end{itemize}
+\end{frame}
+
+\section{O Neurônio Artificial}
+\begin{frame}[c]{Visualização Básica do Neurônio}
+    \begin{center}
+        \begin{tikzpicture}[scale=1.5]
+            % Neurônio central
+            \node[circle, draw, align=center, fill=green!40, minimum size=2.5cm] (neuron) at (0,0) {
+                \textbf{FUNÇÃO DE}\\
+                \textbf{ATIVAÇÃO}
+            };
+            
+            % Entradas
+            \draw[-latex, ultra thick, orange!80!black] (-3, 1.5) -- (-1.3, 0.5);
+            \draw[-latex, ultra thick, orange!80!black] (-3, 0) -- (-1.3, 0);
+            \draw[-latex, ultra thick, orange!80!black] (-3, -1.5) -- (-1.3, -0.5);
+            
+            % Saída
+            \draw[-latex, ultra thick, orange!80!black] (1.3, 0) -- (3, 0) node[midway, above] {Saída};
+            
+            % Textos explicativos
+            \node[text width=4.5cm, align=left] at (-3, -2.5) {
+                \small \textbf{Dados da camada anterior}
+            };
+            
+            \node[text width=4cm, align=left] at (3, -1) {
+                \small \textbf{O neurônio produz}\\
+                \small \textbf{os dados transformados}
+            };
+            
+            \node[text width=4cm, align=center] at (0, -2.5) {
+                \small \textbf{Alguma forma de computação}\\
+                \small \textbf{transforma as entradas}
+            };
+        \end{tikzpicture}
+    \end{center}
+\end{frame}
+
+\begin{frame}[c]{Neurônio com Pesos e Bias}
+    \begin{center}
+        \begin{tikzpicture}[scale=1.3]
+            % Neurônio central
+            \node[circle, draw, align=center, fill=green!40, minimum size=2.5cm] (neuron) at (0,0) {
+                \textbf{FUNÇÃO DE}\\
+                \textbf{ATIVAÇÃO}
+            };
+            
+            % Entradas com pesos
+            \node (x1) at (-3, 1.5) {$x_1$};
+            \node (x2) at (-3, 0.5) {$x_2$};
+            \node (x3) at (-3, -0.5) {$x_3$};
+            \node (b) at (-3, -1.5) {$1$};
+            
+            \draw[-latex, ultra thick, orange!80!black] (x1) -- (-1.2, 0.5) node[midway, above] {$w_1$};
+            \draw[-latex, ultra thick, orange!80!black] (x2) -- (-1.2, 0.2) node[midway, above] {$w_2$};
+            \draw[-latex, ultra thick, orange!80!black] (x3) -- (-1.2, -0.2) node[midway, above] {$w_3$};
+            \draw[-latex, ultra thick, orange!80!black] (b) -- (-1.2, -0.5) node[midway, above] {$b$};
+            
+            % Saída
+            \draw[-latex, ultra thick, orange!80!black] (1.2, 0) -- (3, 0) node[midway, above] {$f(z)$};
+            
+            % Equação
+            \node[text width=6cm, align=center] at (0, -2.5) {
+                $z = x_1w_1 + x_2w_2 + x_3w_3 + b$
+            };
+        \end{tikzpicture}
+    \end{center}
+\end{frame}
+
+\begin{frame}[c]{Notação Vetorial}
+    \begin{itemize}
+        \item \bfseries Cálculo do Neurônio
+        \begin{align}
+            z &= b + \sum_{i=1}^{m} x_i w_i \\[0.5em]
+            z &= b + \mathbf{x}^T \mathbf{w} \\[0.5em]
+            a &= f(z)
+        \end{align}
+    \end{itemize}
+    
+    \vspace{0.5cm}
+    
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Nomenclatura:}
+            \begin{itemize}
+                \item $z$ = "net input" (entrada líquida)
+                \item $b$ = "bias term" (termo de viés)
+                \item $f$ = função de ativação
+                \item $a$ = saída para próxima camada
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Dimensões:}
+            \begin{itemize}
+                \item $\mathbf{x}$ = vetor de entrada
+                \item $\mathbf{w}$ = vetor de pesos
+                \item $b$ = escalar (bias)
+                \item $a$ = escalar (ativação)
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\section{Relação com Regressão Logística}
+\begin{frame}[c]{Relação com Regressão Logística}
+    Quando escolhemos a função sigmoid: $f(z) = \frac{1}{1 + e^{-z}}$
+    
+    \begin{equation}
+        z = b + \sum_{i=1}^{m} x_i w_i = x_1w_1 + x_2w_2 + \cdots + x_mw_m + b
+    \end{equation}
+    
+    \vspace{0.5cm}
+    
+    \begin{display}[Então um neurônio é simplesmente uma "unidade" de regressão logística!]
+        \begin{center}
+            \begin{tabular}{lcl}
+                pesos & $\Leftrightarrow$ & coeficientes \\
+                entradas & $\Leftrightarrow$ & variáveis \\
+                termo de bias & $\Leftrightarrow$ & termo constante
+            \end{tabular}
+        \end{center}
+    \end{display}
+    
+    \begin{attention}[Insight Importante]
+        Um neurônio com ativação sigmoid é exatamente uma regressão logística!
+    \end{attention}
+\end{frame}
+
+\begin{frame}[c]{A Função Sigmoid}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \begin{equation}
+                \sigma(z) = \frac{1}{1 + e^{-z}}
+            \end{equation}
+            
+            \vspace{0.5cm}
+            
+            \textbf{Propriedades:}
+            \begin{itemize}
+                \item Domínio: $(-\infty, +\infty)$
+                \item Imagem: $(0, 1)$
+                \item Sempre crescente
+                \item Ponto de inflexão em $z=0$
+                \item $\sigma(0) = 0.5$
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \begin{tikzpicture}[scale=0.8]
+                \draw[-latex] (-3, 0) -- (3, 0) node[right] {$z$};
+                \draw[-latex] (0, -0.5) -- (0, 2.5) node[above] {$\sigma(z)$};
+                
+                % Grid
+                \draw[gray, very thin] (-3, 0) grid (3, 2);
+                
+                % Sigmoid curve
+                \draw[blue, ultra thick, domain=-3:3, smooth, variable=\x] 
+                    plot (\x, {2/(1 + exp(-2*\x))});
+                
+                % Labels
+                \node at (0, 1) [left] {$0.5$};
+                \node at (0, 2) [left] {$1$};
+                \node at (0, 0) [below left] {$0$};
+                
+                % Dotted lines
+                \draw[dotted] (-3, 2) -- (3, 2);
+                \draw[dotted] (0, 1) -- (3, 1);
+            \end{tikzpicture}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Propriedade Importante da Sigmoid}
+    \begin{display}[Derivada da Função Sigmoid]
+        \vspace{-.5cm}
+        \begin{align}
+            \sigma(z) &= \frac{1}{1 + e^{-z}} \\[0.5em]
+            \sigma'(z) &= \frac{e^{-z}}{(1 + e^{-z})^2} \\[0.5em]
+            &= \frac{1}{1 + e^{-z}} \cdot \frac{e^{-z}}{1 + e^{-z}} \\[0.5em]
+            &= \frac{1}{1 + e^{-z}} \cdot \left(1 - \frac{1}{1 + e^{-z}}\right) \\[0.5em]
+            &= \highlight{\sigma(z) \cdot (1 - \sigma(z))}
+        \end{align}
+        \vspace{-.5cm}
+    \end{display}
+    
+\end{frame}
+
+\begin{frame}[c]{Exemplo de Computação do Neurônio}
+    \begin{columns}[c]
+        \begin{column}{0.4\textwidth}
+            \textbf{Dados de entrada:}
+            \begin{itemize}
+                \item $x_1 = 0.9$
+                \item $x_2 = 0.2$
+                \item $x_3 = 0.3$
+            \end{itemize}
+            
+            \textbf{Pesos:}
+            \begin{itemize}
+                \item $w_1 = 2$
+                \item $w_2 = 3$
+                \item $w_3 = -1$
+                \item $b = 0.5$
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.6\textwidth}
+            \textbf{Cálculo:}
+            \begin{align}
+                z &= 0.9(2) + 0.2(3) + 0.3(-1) + 0.5 \\
+                &= 1.8 + 0.6 - 0.3 + 0.5 \\
+                &= 2.6 \\[0.5em]
+                f(z) &= \frac{1}{1 + e^{-2.6}} \\
+                &= 0.93
+            \end{align}
+            
+            \highlight{O neurônio produziria o valor 0.93}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\section{Por que Redes Neurais?}
+\begin{frame}[c]{Por que Redes Neurais?}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Um único neurônio (como regressão logística):}
+            \begin{itemize}
+                \item Só permite uma \highlight{fronteira de decisão linear}
+                \item Limitado a problemas linearmente separáveis
+                \item Não consegue capturar relações complexas
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Redes com múltiplos neurônios:}
+            \begin{itemize}
+                \item Podem criar \highlight{fronteiras não-lineares}
+                \item Capturam interações complexas
+                \item Aproximam qualquer função contínua
+                \item Resolvem problemas do mundo real!
+            \end{itemize}
+        \end{column}
+    \end{columns}
+    
+    \vspace{0.5cm}
+    
+    \begin{attention}[Teorema da Aproximação Universal]
+        Uma rede neural com uma camada oculta e suficientes neurônios pode aproximar qualquer função contínua!
+    \end{attention}
+\end{frame}
+
+\section{Rede Neural Feedforward}
+\begin{frame}[c]{Rede Neural Feedforward}
+    \begin{center}
+        \begin{tikzpicture}[scale=0.9]
+            % Definir estilos
+            \tikzstyle{neuron}=[circle, draw, minimum size=0.8cm]
+            \tikzstyle{input}=[neuron, fill=cyan!30]
+            \tikzstyle{hidden}=[neuron, fill=orange!40]
+            \tikzstyle{output}=[neuron, fill=gray!50]
+            
+            % Camada de entrada
+            \node[input] (x1) at (0, 2) {$x_1$};
+            \node[input] (x2) at (0, 0) {$x_2$};
+            \node[input] (x3) at (0, -2) {$x_3$};
+            
+            % Primeira camada oculta
+            \foreach \i in {1,...,4} {
+                \node[hidden] (h1\i) at (3, 3-\i) {$\sigma$};
+            }
+            
+            % Segunda camada oculta
+            \foreach \i in {1,...,4} {
+                \node[hidden] (h2\i) at (6, 3-\i) {$\sigma$};
+            }
+            
+            % Camada de saída
+            \node[output] (y1) at (9, 1.5) {$\hat{y}_1$};
+            \node[output] (y2) at (9, 0) {$\hat{y}_2$};
+            \node[output] (y3) at (9, -1.5) {$\hat{y}_3$};
+            
+            % Desenhar conexões
+            \foreach \x in {1,2,3} {
+                \foreach \h in {1,2,3,4} {
+                    \draw[-latex, yellow!70!black] (x\x) -- (h1\h);
+                }
+            }
+            
+            \foreach \h in {1,2,3,4} {
+                \foreach \hh in {1,2,3,4} {
+                    \draw[-latex, yellow!70!black] (h1\h) -- (h2\hh);
+                }
+            }
+            
+            \foreach \h in {1,2,3,4} {
+                \foreach \y in {1,2,3} {
+                    \draw[-latex, yellow!70!black] (h2\h) -- (y\y);
+                }
+            }
+        \end{tikzpicture}
+    \end{center}
+    
+    \begin{itemize}
+        \item \highlight{Feedforward}: informação flui em uma direção (entrada → saída)
+        \item Cada conexão tem um \highlight{peso} associado
+        \item Cada neurônio tem um \highlight{bias}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[c]{Camadas da Rede Neural}
+    \begin{columns}[c]
+        \begin{column}{0.33\textwidth}
+            \centering
+            \textbf{Camada de Entrada}
+            \begin{tikzpicture}[scale=0.7]
+                \node[circle, draw, fill=cyan!30] (x1) at (0, 1.5) {$x_1$};
+                \node[circle, draw, fill=cyan!30] (x2) at (0, 0) {$x_2$};
+                \node[circle, draw, fill=cyan!30] (x3) at (0, -1.5) {$x_3$};
+                \draw[dashed, yellow!80!black, thick] (-0.8, -2.5) rectangle (0.8, 2.5);
+            \end{tikzpicture}
+            
+            \begin{itemize}
+                \small
+                \item Recebe os dados
+                \item Não processa
+                \item Apenas repassa
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.33\textwidth}
+            \centering
+            \textbf{Camadas Ocultas}
+            \begin{tikzpicture}[scale=0.7]
+                \foreach \i in {1,2,3,4} {
+                    \node[circle, draw, fill=orange!40] (h1\i) at (0, 2.5-\i) {$\sigma$};
+                }
+                \foreach \i in {1,2,3,4} {
+                    \node[circle, draw, fill=orange!40] (h2\i) at (2, 2.5-\i) {$\sigma$};
+                }
+                \draw[dashed, yellow!80!black, thick] (-0.8, -2.5) rectangle (2.8, 2.5);
+            \end{tikzpicture}
+            
+            \begin{itemize}
+                \small
+                \item Processamento
+                \item Extração de features
+                \item Não-linearidade
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.33\textwidth}
+            \centering
+            \textbf{Camada de Saída}
+            
+            \begin{tikzpicture}[scale=0.7]
+                \node[circle, draw, fill=gray!50] (y1) at (0, 1.5) {$\hat{y}_1$};
+                \node[circle, draw, fill=gray!50] (y2) at (0, 0) {$\hat{y}_2$};
+                \node[circle, draw, fill=gray!50] (y3) at (0, -1.5) {$\hat{y}_3$};
+                \draw[dashed, yellow!80!black, thick] (-0.8, -2.5) rectangle (0.8, 2.5);
+            \end{tikzpicture}
+            
+            \begin{itemize}
+                \small
+                \item Produz resultado
+                \item Formato depende do problema
+                \item Classificação ou regressão
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Pesos (Representados por Matrizes)}
+    \begin{center}
+        \begin{tikzpicture}[scale=0.8]
+            % Camadas
+            \node[circle, draw, fill=cyan!30] (x1) at (0, 1.5) {$x_1$};
+            \node[circle, draw, fill=cyan!30] (x2) at (0, 0) {$x_2$};
+            \node[circle, draw, fill=cyan!30] (x3) at (0, -1.5) {$x_3$};
+            
+            \foreach \i in {1,2,3,4} {
+                \node[circle, draw, fill=orange!40] (h1\i) at (3, 2.5-\i) {$\sigma$};
+            }
+            
+            \foreach \i in {1,2,3,4} {
+                \node[circle, draw, fill=orange!40] (h2\i) at (6, 2.5-\i) {$\sigma$};
+            }
+            
+            \node[circle, draw, fill=gray!50] (y1) at (9, 1.5) {$\hat{y}_1$};
+            \node[circle, draw, fill=gray!50] (y2) at (9, 0) {$\hat{y}_2$};
+            \node[circle, draw, fill=gray!50] (y3) at (9, -1.5) {$\hat{y}_3$};
+            
+            % Matrizes de pesos
+            \node at (1.5, 3) {$W^{(1)}$};
+            \node at (4.5, 3) {$W^{(2)}$};
+            \node at (7.5, 3) {$W^{(3)}$};
+            
+            % Algumas conexões para ilustrar
+            \foreach \x in {1,2,3} {
+                \foreach \h in {1,2,3,4} {
+                    \draw[-latex, yellow!60!black] (x\x) -- (h1\h);
+                }
+            }
+            
+            \foreach \h in {1,2,3,4} {
+                \foreach \hh in {1,2,3,4} {
+                    \draw[-latex, yellow!60!black] (h1\h) -- (h2\hh);
+                }
+            }
+            
+            \foreach \h in {1,2,3,4} {
+                \foreach \y in {1,2,3} {
+                    \draw[-latex, yellow!60!black] (h2\h) -- (y\y);
+                }
+            }
+        \end{tikzpicture}
+    \end{center}
+    
+    \begin{itemize}
+        \item $W^{(1)}$: matriz de pesos da entrada para primeira camada oculta (3$\times$4)
+        \item $W^{(2)}$: matriz de pesos entre camadas ocultas (4$\times$4)
+        \item $W^{(3)}$: matriz de pesos da última camada oculta para saída (4$\times$3)
+    \end{itemize}
+\end{frame}
+
+\section{Representação Matricial}
+\begin{frame}[c]{Representação Matricial da Computação}
+    Para a primeira camada oculta:
+    
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \begin{tikzpicture}[scale=0.8]
+                \node[circle, draw, fill=cyan!30] (x1) at (0, 1.5) {$x_1$};
+                \node[circle, draw, fill=cyan!30] (x2) at (0, 0) {$x_2$};
+                \node[circle, draw, fill=cyan!30] (x3) at (0, -1.5) {$x_3$};
+                
+                \foreach \i in {1,2,3,4} {
+                    \node[circle, draw, fill=orange!40] (h\i) at (3, 2.5-\i) {$\sigma$};
+                }
+                
+                \node at (1.5, 2.5) {$W^{(1)}$};
+                \node at (2.5, 2.25) {$z^{(2)}$};
+                \node at (3.5, -2.25) {$a^{(2)}$};
+                
+                \foreach \x in {1,2,3} {
+                    \foreach \h in {1,2,3,4} {
+                        \draw[-latex, yellow!60!black] (x\x) -- (h\h);
+                    }
+                }
+            \end{tikzpicture}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Cálculo:}
+            \begin{align}
+                \mathbf{x} &= [x_1, x_2, x_3] \quad (1\times 3)\\
+                W^{(1)} &\text{ é uma matriz } 3\times 4 \\
+                z^{(2)} &= \mathbf{x} W^{(1)} \quad (1\times 4)\\
+                a^{(2)} &= \sigma(z^{(2)}) \quad (1\times 4)
+            \end{align}
+            
+            onde $\mathbf{x} = a^{(1)}$ (entrada é a ativação da "camada 0")
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Continuando a Computação}
+    \begin{display}[Para uma única instância de treinamento]
+        \textbf{Entrada:} vetor $\mathbf{x}$ (vetor linha de tamanho 3)\\
+        \textbf{Saída:} vetor $\hat{\mathbf{y}}$ (vetor linha de tamanho 3)
+    \end{display}
+
+    
+    \begin{align}
+        z^{(2)} &= \mathbf{x}W^{(1)} & a^{(2)} &= \sigma(z^{(2)}) \\
+        z^{(3)} &= a^{(2)}W^{(2)} & a^{(3)} &= \sigma(z^{(3)}) \\
+        z^{(4)} &= a^{(3)}W^{(3)} & \hat{\mathbf{y}} &= \text{softmax}(z^{(4)})
+    \end{align}
+\end{frame}
+
+\begin{frame}[c]{Múltiplos Pontos de Dados}
+    \begin{display}[Processamento em Lote]
+        Na prática, fazemos essas computações para muitos pontos de dados ao mesmo tempo, "empilhando" as linhas em uma matriz. Mas as equações permanecem as mesmas!
+    \end{display}
+    
+    \vspace{0.5cm}
+    
+    \textbf{Entrada:} matriz $X$ (uma matriz $n \times 3$) - cada linha é uma instância\\
+    \textbf{Saída:} matriz $\hat{Y}$ (uma matriz $n \times 3$) - cada linha é uma predição
+    
+    \vspace{0.5cm}
+    
+    \begin{align}
+        Z^{(2)} &= XW^{(1)} & A^{(2)} &= \sigma(Z^{(2)}) \\
+        Z^{(3)} &= A^{(2)}W^{(2)} & A^{(3)} &= \sigma(Z^{(3)}) \\
+        Z^{(4)} &= A^{(3)}W^{(3)} & \hat{Y} &= \text{softmax}(Z^{(4)})
+    \end{align}
+    
+    \begin{alertblock}{Vantagem do Processamento em Lote}
+        Operações matriciais são altamente otimizadas em GPUs e CPUs modernas!
+    \end{alertblock}
+\end{frame}
+
+\begin{frame}[c]{Próximos Passos}
+    \begin{center}
+        \Large
+        \textbf{Agora sabemos como redes neurais feedforward fazem computações.}
+        
+        \vspace{.25cm}
+        
+        \textbf{Próximo passo: aprender como ajustar os pesos para aprender dos dados.}
+    \end{center}
+    
+    \vspace{1cm}
+    
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{O que já sabemos:}
+            \begin{itemize}
+                \item Forward pass (propagação direta)
+                \item Estrutura da rede
+                \item Representação matricial
+                \item Funções de ativação
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Próxima aula:}
+            \begin{itemize}
+                \item \highlight{Backpropagation}
+                \item Cálculo de gradientes
+                \item Atualização de pesos
+                \item Treinamento da rede
+            \end{itemize}
+        \end{column}
+    \end{columns}
+
+\end{frame}
+
+
+\begin{frame}[c, noframenumbering, plain]
+    \frametitle{~}
+        \vfill
+        \begin{center}
+            {\Huge Obrigado!}\vspace{1.5em}\\
+            {\Large \highlight{Alguma dúvida?}}\\
+        \end{center}
+        \vfill
+        \begin{center}
+            {\small Agora vamos para os exercícios!}
+        \end{center}
+\end{frame}
+
+\end{document}

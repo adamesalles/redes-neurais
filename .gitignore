@@ -1,3 +1,5 @@
+base_course
+
 # LaTeX generated files
 *.aux
 *.bbl
@@ -15,6 +17,8 @@
 *.vrb
 *.lof
 *.lot
+*.minted
+_minted
 
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/
