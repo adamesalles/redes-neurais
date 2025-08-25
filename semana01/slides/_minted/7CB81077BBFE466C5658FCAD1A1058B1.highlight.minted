@@ -1,0 +1,22 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{c+c1}{\PYGZsh{} 1. Gerar dados sintéticos}
+\PYG{n}{np}\PYG{o}{.}\PYG{n}{random}\PYG{o}{.}\PYG{n}{seed}\PYG{p}{(}\PYG{l+m+mi}{1234}\PYG{p}{)}
+\PYG{n}{X1} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{random}\PYG{o}{.}\PYG{n}{uniform}\PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{,} \PYG{l+m+mi}{10}\PYG{p}{,} \PYG{l+m+mi}{100}\PYG{p}{)}
+\PYG{n}{X2} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{random}\PYG{o}{.}\PYG{n}{uniform}\PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{,} \PYG{l+m+mi}{10}\PYG{p}{,} \PYG{l+m+mi}{100}\PYG{p}{)}
+\PYG{n}{y} \PYG{o}{=} \PYG{l+m+mf}{1.5} \PYG{o}{+} \PYG{l+m+mi}{2}\PYG{o}{*}\PYG{n}{X1} \PYG{o}{+} \PYG{l+m+mi}{5}\PYG{o}{*}\PYG{n}{X2} \PYG{o}{+} \PYG{n}{noise}
+
+\PYG{c+c1}{\PYGZsh{} 2. Comparar 3 métodos}
+\PYG{c+c1}{\PYGZsh{} Método 1: Sklearn}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{sklearn.linear\PYGZus{}model}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{LinearRegression}
+\PYG{n}{model} \PYG{o}{=} \PYG{n}{LinearRegression}\PYG{p}{()}\PYG{o}{.}\PYG{n}{fit}\PYG{p}{(}\PYG{n}{X}\PYG{p}{,} \PYG{n}{y}\PYG{p}{)}
+
+\PYG{c+c1}{\PYGZsh{} Método 2: Solução analítica}
+\PYG{n}{beta\PYGZus{}hat} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{linalg}\PYG{o}{.}\PYG{n}{inv}\PYG{p}{(}\PYG{n}{X}\PYG{o}{.}\PYG{n}{T} \PYG{o}{@} \PYG{n}{X}\PYG{p}{)} \PYG{o}{@} \PYG{n}{X}\PYG{o}{.}\PYG{n}{T} \PYG{o}{@} \PYG{n}{y}
+
+\PYG{c+c1}{\PYGZsh{} Método 3: Descida de gradiente (VOCÊS!)}
+\PYG{k}{for} \PYG{n}{epoch} \PYG{o+ow}{in} \PYG{n+nb}{range}\PYG{p}{(}\PYG{n}{num\PYGZus{}epochs}\PYG{p}{):}
+    \PYG{n}{predictions} \PYG{o}{=} \PYG{n}{X} \PYG{o}{@} \PYG{n}{theta}
+    \PYG{n}{errors} \PYG{o}{=} \PYG{n}{y} \PYG{o}{\PYGZhy{}} \PYG{n}{predictions}
+    \PYG{n}{gradient} \PYG{o}{=} \PYG{o}{\PYGZhy{}}\PYG{n}{X}\PYG{o}{.}\PYG{n}{T} \PYG{o}{@} \PYG{n}{errors} \PYG{o}{/} \PYG{n}{n}
+    \PYG{n}{theta} \PYG{o}{=} \PYG{n}{theta} \PYG{o}{\PYGZhy{}} \PYG{n}{learning\PYGZus{}rate} \PYG{o}{*} \PYG{n}{gradient}
+\end{MintedVerbatim}

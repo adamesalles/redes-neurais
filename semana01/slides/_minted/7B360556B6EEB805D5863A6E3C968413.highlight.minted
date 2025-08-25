@@ -1,0 +1,26 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{batch\PYGZus{}gradient\PYGZus{}descent}\PYG{p}{(}\PYG{n}{X}\PYG{p}{,} \PYG{n}{y}\PYG{p}{,} \PYG{n}{lr}\PYG{o}{=}\PYG{l+m+mf}{0.01}\PYG{p}{,} \PYG{n}{epochs}\PYG{o}{=}\PYG{l+m+mi}{1000}\PYG{p}{):}
+    \PYG{n}{n}\PYG{p}{,} \PYG{n}{p} \PYG{o}{=} \PYG{n}{X}\PYG{o}{.}\PYG{n}{shape}
+    \PYG{n}{theta} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{zeros}\PYG{p}{(}\PYG{n}{p}\PYG{p}{)}  \PYG{c+c1}{\PYGZsh{} inicialização}
+    \PYG{n}{costs} \PYG{o}{=} \PYG{p}{[]}
+
+    \PYG{k}{for} \PYG{n}{epoch} \PYG{o+ow}{in} \PYG{n+nb}{range}\PYG{p}{(}\PYG{n}{epochs}\PYG{p}{):}
+        \PYG{c+c1}{\PYGZsh{} Forward pass}
+        \PYG{n}{predictions} \PYG{o}{=} \PYG{n}{X} \PYG{o}{@} \PYG{n}{theta}
+
+        \PYG{c+c1}{\PYGZsh{} Calcular custo}
+        \PYG{n}{cost} \PYG{o}{=} \PYG{l+m+mf}{0.5} \PYG{o}{*} \PYG{n}{np}\PYG{o}{.}\PYG{n}{mean}\PYG{p}{((}\PYG{n}{y} \PYG{o}{\PYGZhy{}} \PYG{n}{predictions}\PYG{p}{)}\PYG{o}{**}\PYG{l+m+mi}{2}\PYG{p}{)}
+        \PYG{n}{costs}\PYG{o}{.}\PYG{n}{append}\PYG{p}{(}\PYG{n}{cost}\PYG{p}{)}
+
+        \PYG{c+c1}{\PYGZsh{} Calcular gradiente}
+        \PYG{n}{gradient} \PYG{o}{=} \PYG{p}{(}\PYG{l+m+mi}{1}\PYG{o}{/}\PYG{n}{n}\PYG{p}{)} \PYG{o}{*} \PYG{n}{X}\PYG{o}{.}\PYG{n}{T} \PYG{o}{@} \PYG{p}{(}\PYG{n}{predictions} \PYG{o}{\PYGZhy{}} \PYG{n}{y}\PYG{p}{)}
+
+        \PYG{c+c1}{\PYGZsh{} Atualizar parâmetros}
+        \PYG{n}{theta} \PYG{o}{=} \PYG{n}{theta} \PYG{o}{\PYGZhy{}} \PYG{n}{lr} \PYG{o}{*} \PYG{n}{gradient}
+
+        \PYG{c+c1}{\PYGZsh{} Critério de parada}
+        \PYG{k}{if} \PYG{n}{epoch} \PYG{o}{\PYGZgt{}} \PYG{l+m+mi}{0} \PYG{o+ow}{and} \PYG{n+nb}{abs}\PYG{p}{(}\PYG{n}{costs}\PYG{p}{[}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{1}\PYG{p}{]} \PYG{o}{\PYGZhy{}} \PYG{n}{costs}\PYG{p}{[}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{2}\PYG{p}{])} \PYG{o}{\PYGZlt{}} \PYG{l+m+mf}{1e\PYGZhy{}6}\PYG{p}{:}
+            \PYG{k}{break}
+
+    \PYG{k}{return} \PYG{n}{theta}\PYG{p}{,} \PYG{n}{costs}
+\end{MintedVerbatim}
