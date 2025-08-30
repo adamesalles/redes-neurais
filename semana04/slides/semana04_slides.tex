@@ -1,0 +1,519 @@
+\documentclass[xcolor=dvipsnames,t,aspectratio=169]{beamer}
+
+\usecolortheme{rose}
+\usecolortheme{dolphin}
+\usetheme{Boadilla}
+
+\input{../../templates/slides/imports}
+\input{../../templates/slides/settings}
+\input{../../templates/slides/commands}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, shapes, positioning}
+\usepackage{algorithmic}
+
+\titlegraphic{
+    \includegraphics[scale = 0.5]{../../templates/slides/logo}
+}
+
+\logo{
+\begin{tikzpicture}[overlay,remember picture]
+\node[below left = 0.2cm] at (current page.30) {
+    \includegraphics[width=0.1\textwidth]{../../templates/slides/logo}};
+\end{tikzpicture}
+}
+
+\newcommand{\highlight}[1]{{\color{nes_dark_orange} #1}}
+
+\title{Treinamento de Redes Neurais} 
+
+\author{
+    Eduardo Adame
+}
+
+\date{{\color{nes_dark_purple}  \textbf{Redes Neurais}\\[0.5em] 20 de agosto de 2025 }}
+
+\begin{document}
+
+\frame[plain]{\titlepage}
+\setcounter{framenumber}{0}
+
+\section{Estratégias de Atualização de Pesos}
+
+\begin{frame}[c]{Como Atualizar os Pesos?}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Após calcular os gradientes:}
+            \begin{itemize}
+                \item Sabemos a derivada para cada peso
+                \item Como exatamente atualizamos?
+                \item Com que frequência?
+                \begin{itemize}
+                    \item Após cada exemplo?
+                    \item Após todos os dados?
+                    \item Algo intermediário?
+                \end{itemize}
+            \end{itemize}
+            
+            \vspace{0.5cm}
+            \textbf{Regra de Atualização:}
+            $$W_{novo} = W_{antigo} - \alpha \cdot \frac{\partial J}{\partial W}$$
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \begin{tikzpicture}[scale=0.8]
+                % Superfície de erro
+                \draw[thick] (0,3) .. controls (1,1) and (3,1.5) .. (5,2);
+                \draw[thick] (0,2.5) .. controls (1,0.5) and (3,1) .. (5,1.5);
+                \draw[thick] (0,2) .. controls (1,0) and (3,0.5) .. (5,1);
+                
+                % Ponto atual
+                \node[circle, fill=red, inner sep=2pt] (current) at (3,1.25) {};
+                
+                % Gradiente
+                \draw[->, thick, blue] (current) -- (2,2) node[above] {$-\nabla J$};
+                
+                % Labels
+                \node at (2.5, -0.5) {Espaço de Pesos};
+                \node[rotate=90] at (-0.7, 2) {Erro};
+            \end{tikzpicture}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Descida de Gradiente Clássica (Batch)}
+    \begin{columns}[c]
+        \begin{column}{0.55\textwidth}
+            \textbf{Abordagem Tradicional:}
+            \begin{itemize}
+                \item Calcular gradiente para \highlight{todo o conjunto}
+                \item Dar um passo na direção oposta
+                \item Repetir até convergência
+            \end{itemize}
+            
+            \vspace{0.5cm}
+            \textbf{Vantagens:}
+            \begin{itemize}
+                \item[$+$] Cada passo usa toda informação
+                \item[$+$] Convergência mais estável
+            \end{itemize}
+            
+            \textbf{Desvantagens:}
+            \begin{itemize}
+                \item[$-$] Muito lento para datasets grandes
+                \item[$-$] Pode ficar preso em mínimos locais
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.45\textwidth}
+            \begin{tikzpicture}[scale=0.9]
+                % Círculos concêntricos
+                \foreach \r in {0.5, 1, 1.5, 2, 2.5} {
+                    \draw[gray!50] (0,0) circle (\r);
+                }
+                
+                % Trajetória suave
+                \draw[->, ultra thick, red] (2.5,0) -- (2,0) -- (1.5,0) -- (1,0) -- (0.5,0) -- (0.1,0);
+                
+                % Centro (mínimo)
+                \node[circle, fill=green, inner sep=2pt] at (0,0) {};
+                
+                % Label
+                \node[below] at (0,-3) {Convergência Suave};
+            \end{tikzpicture}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Descida de Gradiente Estocástica (SGD)}
+    \begin{columns}[c]
+        \begin{column}{0.55\textwidth}
+            \textbf{Abordagem Online:}
+            \begin{itemize}
+                \item Calcular gradiente para \highlight{um exemplo}
+                \item Atualizar imediatamente
+                \item Mais passos, menos informados
+            \end{itemize}
+            
+            \vspace{0.5cm}
+            \textbf{Vantagens:}
+            \begin{itemize}
+                \item[$+$] Muito mais rápido
+                \item[$+$] Pode escapar de mínimos locais
+                \item[$+$] Funciona bem online
+            \end{itemize}
+            
+            \textbf{Desvantagens:}
+            \begin{itemize}
+                \item[$-$] Convergência ruidosa
+                \item[$-$] Precisa de taxa de aprendizado menor
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.45\textwidth}
+            \begin{tikzpicture}[scale=0.9]
+                % Círculos concêntricos
+                \foreach \r in {0.5, 1, 1.5, 2, 2.5} {
+                    \draw[gray!50] (0,0) circle (\r);
+                }
+                
+                % Trajetória ziguezague
+                \draw[->, ultra thick, red] (2.5,0) -- (1.8,0.7) -- (1.2,-0.5) -- (0.6,0.3) -- (0.2,-0.2) -- (0.1,0.1);
+                
+                % Centro (mínimo)
+                \node[circle, fill=green, inner sep=2pt] at (0,0) {};
+                
+                % Label
+                \node[below] at (0,-3) {Convergência Ruidosa};
+            \end{tikzpicture}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Mini-batch: O Melhor dos Dois Mundos}
+    \begin{columns}[c]
+        \begin{column}{0.55\textwidth}
+            \textbf{Abordagem Híbrida:}
+            \begin{itemize}
+                \item Usar \highlight{pequenos lotes} (16, 32, 64...)
+                \item Equilibrio entre velocidade e estabilidade
+                \item Padrão na prática moderna
+            \end{itemize}
+            
+            \vspace{0.5cm}
+            \textbf{Benefícios:}
+            \begin{itemize}
+                \item[$\checkmark$] Aproveita paralelização (GPU)
+                \item[$\checkmark$] Reduz variância do gradiente
+                \item[$\checkmark$] Ainda permite escapar de mínimos
+                \item[$\checkmark$] Boa relação custo-benefício
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.45\textwidth}
+            \begin{tikzpicture}[scale=0.9]
+                % Círculos concêntricos
+                \foreach \r in {0.5, 1, 1.5, 2, 2.5} {
+                    \draw[gray!50] (0,0) circle (\r);
+                }
+                
+                % Trajetória intermediária
+                \draw[->, ultra thick, red] (2.5,0) -- (2,0.2) -- (1.5,-0.1) -- (1,0.1) -- (0.5,-0.05) -- (0.1,0);
+                
+                % Centro (mínimo)
+                \node[circle, fill=green, inner sep=2pt] at (0,0) {};
+                
+                % Label
+                \node[below] at (0,-3) {Convergência Balanceada};
+            \end{tikzpicture}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Comparação das Estratégias de Batch}
+    \begin{center}
+        \begin{tikzpicture}[scale=1.1]
+            % Três círculos alvo
+            \begin{scope}[shift={(0,0)}]
+                \foreach \r in {0.3, 0.6, 0.9, 1.2} {
+                    \draw[gray!40] (0,0) circle (\r);
+                }
+                \draw[->, ultra thick, red, densely dashed] (1.2,0) 
+                    .. controls (0.8,0.4) and (0.4,-0.3) .. (0.1,0.1) 
+                    .. controls (0,-0.05) .. (0,0);
+                \node[below] at (0,-1.6) {\textbf{SGD}};
+                \node[below] at (0,-2) {\small (Batch = 1)};
+                \node[circle, fill=green, inner sep=1.5pt] at (0,0) {};
+            \end{scope}
+            
+            \begin{scope}[shift={(3.5,0)}]
+                \foreach \r in {0.3, 0.6, 0.9, 1.2} {
+                    \draw[gray!40] (0,0) circle (\r);
+                }
+                \draw[->, ultra thick, red] (1.2,0) -- (0.8,0.1) -- (0.4,-0.05) -- (0.1,0) -- (0,0);
+                \node[below] at (0,-1.6) {\textbf{Mini-batch}};
+                \node[below] at (0,-2) {\small (Batch = 32)};
+                \node[circle, fill=green, inner sep=1.5pt] at (0,0) {};
+            \end{scope}
+            
+            \begin{scope}[shift={(7,0)}]
+                \foreach \r in {0.3, 0.6, 0.9, 1.2} {
+                    \draw[gray!40] (0,0) circle (\r);
+                }
+                \draw[->, ultra thick, red] (1.2,0) -- (0.9,0) -- (0.6,0) -- (0.3,0) -- (0,0);
+                \node[below] at (0,-1.6) {\textbf{Batch Completo}};
+                \node[below] at (0,-2) {\small (Batch = N)};
+                \node[circle, fill=green, inner sep=1.5pt] at (0,0) {};
+            \end{scope}
+            
+            % Barra de gradiente
+            \draw[thick] (0,-3) -- (7,-3);
+            \fill[blue!60] (0,-3.2) rectangle (1,-2.8);
+            \fill[blue!60!green!60] (3,-3.2) rectangle (4,-2.8);
+            \fill[red!60] (6,-3.2) rectangle (7,-2.8);
+            
+            \node[below] at (0,-3.3) {\small Rápido};
+            \node[below] at (7,-3.3) {\small Preciso};
+        \end{tikzpicture}
+    \end{center}
+\end{frame}
+
+\begin{frame}[c]{Terminologia: Época e Iteração}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Época (Epoch):}
+            \begin{itemize}
+                \item Uma passada completa pelos dados
+                \item Todos exemplos vistos uma vez
+                \item Métrica comum de progresso
+            \end{itemize}
+            
+            \vspace{0.5cm}
+            \textbf{Passos por Época:}
+            \begin{itemize}
+                \item \highlight{Batch completo}: 1 passo
+                \item \highlight{SGD}: N passos
+                \item \highlight{Mini-batch}: N/batch\_size passos
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \begin{tikzpicture}[scale=0.8]
+                % Dataset cilindro
+                \draw[fill=blue!30] (-1.5,0) -- (-1.5,-2) -- (1.5,-2) -- (1.5,0);
+                \draw[fill=blue!20] (0,0) ellipse (1.5 and 0.5);
+                
+                % Divisões do dataset
+                \foreach \y in {-0.6, -1, -1.4, -1.8} {
+                    \draw[white, thick] (-1.5,\y) -- (1.5,\y);
+                    }
+                    
+                \draw[fill=blue!20] (-1.5,-2) arc(180:360:1.5 and 0.5);
+                % Labels
+                \node at (0,0.8) {\textbf{Dataset Completo}};
+                \node[right] at (1.7,-0.3) {Batch 1};
+                \node[right] at (1.7,-0.7) {Batch 2};
+                \node[right] at (1.7,-1.1) {Batch 3};
+                \node[right] at (1.7,-1.5) {Batch 4};
+                \node[right] at (1.7,-1.9) {Batch 5};
+                
+            \end{tikzpicture}
+        \end{column}
+    \end{columns}
+    
+    \vspace{0.5cm}
+    \begin{center}
+        \highlight{Dica:} Embaralhar os dados após cada época melhora a convergência!
+    \end{center}
+\end{frame}
+
+\begin{frame}[c]{Fluxo de Treinamento: Visão Prática}
+    \begin{center}
+        \begin{tikzpicture}[scale=0.9, node distance=1.5cm]
+            % Nós do fluxograma
+            \node[rectangle, draw, fill=cyan!20, rounded corners] (data) {Carregar Dados};
+            \node[rectangle, draw, fill=orange!20, rounded corners, below of=data] (shuffle) {Embaralhar};
+            \node[rectangle, draw, fill=yellow!20, rounded corners, below of=shuffle] (batch) {Criar Mini-batches};
+            \node[rectangle, draw, fill=green!20, rounded corners, below of=batch] (forward) {Forward Pass};
+            \node[rectangle, draw, fill=red!20, rounded corners, below of=forward] (loss) {Calcular Perda};
+            \node[rectangle, draw, fill=purple!20, rounded corners, right=2cm of loss] (backward) {Backward Pass};
+            \node[rectangle, draw, fill=blue!20, rounded corners, above of=backward] (update) {Atualizar Pesos};
+            
+            % Setas
+            \draw[->, thick] (data) -- (shuffle);
+            \draw[->, thick] (shuffle) -- (batch);
+            \draw[->, thick] (batch) -- (forward);
+            \draw[->, thick] (forward) -- (loss);
+            \draw[->, thick] (loss) -- (backward);
+            \draw[->, thick] (backward) -- (update);
+            \draw[->, thick] (update) -- ++(0,1.5) -| (forward);
+            
+            % Loop de época
+            \draw[->, thick, dashed, blue] (update) -- ++(2,0) |- (shuffle);
+            
+            % Anotações
+            \node[right] at (4.5,0) {\small Repetir para};
+            \node[right] at (4.5,-0.4) {\small cada batch};
+            
+            \node[right, blue] at (4.5,-3) {\small Nova época};
+        \end{tikzpicture}
+    \end{center}
+\end{frame}
+
+\begin{frame}[c, fragile]{Implementação em Keras/TensorFlow}
+    \begin{code}[Estrutura Típica de Código]{python}
+# 1. Construir o modelo
+model = Sequential()
+model.add(Dense(64, activation='relu'))
+model.add(Dense(32, activation='relu'))
+model.add(Dense(10, activation='softmax'))
+# 2. Compilar
+model.compile(
+    optimizer='adam',
+    loss='categorical_crossentropy',
+    metrics=['accuracy']
+)
+# 3. Treinar
+history = model.fit(
+    X_train, y_train,
+    batch_size=32,      # Mini-batch
+    epochs=50,          # Épocas
+    validation_split=0.2
+)
+    \end{code}
+\end{frame}
+
+\begin{frame}[c]{Implementação em Keras/TensorFlow}
+        \textbf{Parâmetros Importantes:}
+            \begin{itemize}
+                \item \highlight{batch\_size}: Tamanho do mini-batch
+                \item \highlight{epochs}: Número de épocas
+                \item \highlight{shuffle}: Embaralhar dados (padrão: True)
+                \item \highlight{validation\_split}: Proporção para validação
+            \end{itemize}
+            
+            \vspace{0.5cm}
+            \textbf{Valores Típicos:}
+            \begin{itemize}
+                \item Batch size: 16, 32, 64, 128
+                \item Épocas: 10-100 (depende do problema)
+                \item Learning rate: 0.001 (Adam), 0.01 (SGD)
+            \end{itemize}
+\end{frame}
+
+\begin{frame}[c]{Normalização de Entrada}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Por que normalizar?}
+            \begin{itemize}
+                \item Acelera convergência
+                \item Evita saturação de neurônios
+                \item Estabiliza o treinamento
+                \item Permite learning rates maiores
+            \end{itemize}
+            
+            \vspace{0.5cm}
+            \textbf{Métodos Comuns:}
+            \begin{itemize}
+                \item \highlight{Min-Max}: $[0, 1]$ ou $[-1, 1]$
+                \item \highlight{Padronização}: média 0, desvio 1
+                \item \highlight{Normalização L2}: vetores unitários
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Fórmulas:}
+            
+            \vspace{0.3cm}
+            Min-Max para $[0,1]$:
+            $$x' = \frac{x - x_{min}}{x_{max} - x_{min}}$$
+            
+            \vspace{0.3cm}
+            Padronização (Z-score):
+            $$x' = \frac{x - \mu}{\sigma}$$
+        \end{column}
+    \end{columns}
+\end{frame}
+
+
+\begin{frame}[c]{Ativação Softmax para Classificação Multiclasse}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Extensão da Sigmoid:}
+            \begin{itemize}
+                \item Saída: vetor de probabilidades
+                \item Soma sempre igual a 1
+                \item Interpretação probabilística
+            \end{itemize}
+            
+            \textbf{Fórmula:}
+            $$\text{softmax}(z_i) = \frac{e^{z_i}}{\sum_{k=1}^{K} e^{z_k}}$$
+            
+            \textbf{Com Cross-Entropy:}
+            $$J = -\sum_{i=1}^{n} y_i \log(\hat{y}_i)$$
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Exemplo Visual:}
+            \begin{tikzpicture}[scale=0.8]
+                % Entrada
+                \node[rectangle, draw] (z1) at (0,2) {$z_1 = 2.0$};
+                \node[rectangle, draw] (z2) at (0,0.5) {$z_2 = 1.0$};
+                \node[rectangle, draw] (z3) at (0,-1) {$z_3 = 0.1$};
+                
+                % Softmax
+                \node[rectangle, draw, fill=yellow!30] (soft) at (3,0.5) {Softmax};
+                
+                % Saída
+                \node[rectangle, draw, fill=green!30] (p1) at (6,2) {$p_1 = 0.66$};
+                \node[rectangle, draw, fill=green!20] (p2) at (6,0.5) {$p_2 = 0.24$};
+                \node[rectangle, draw, fill=green!10] (p3) at (6,-1) {$p_3 = 0.10$};
+                
+                % Conexões
+                \draw[->] (z1) -- (soft);
+                \draw[->] (z2) -- (soft);
+                \draw[->] (z3) -- (soft);
+                \draw[->] (soft) -- (p1);
+                \draw[->] (soft) -- (p2);
+                \draw[->] (soft) -- (p3);
+                
+            \end{tikzpicture}
+            
+            \vspace{0.3cm}
+            \begin{center}
+                \highlight{Classe prevista: Argmax = Classe 1}
+            \end{center}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Resumo: Detalhes Práticos do Treinamento}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Decisões Importantes:}
+            \begin{itemize}
+                \item \highlight{Estratégia de batch}
+                \begin{itemize}
+                    \item Mini-batch (padrão)
+                    \item Tamanho: 32-128
+                \end{itemize}
+                \item \highlight{Número de épocas}
+                \begin{itemize}
+                    \item Monitorar validação
+                    \item Early stopping
+                \end{itemize}
+                \item \highlight{Normalização de entrada}
+                \begin{itemize}
+                    \item Sempre normalizar!
+                    \item Método depende dos dados
+                \end{itemize}
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Boas Práticas:}
+            \begin{itemize}
+                \item[$\checkmark$] Embaralhar dados a cada época
+                \item[$\checkmark$] Usar validação para monitorar
+                \item[$\checkmark$] Começar com learning rate pequeno
+                \item[$\checkmark$] Visualizar curvas de aprendizado
+                \item[$\checkmark$] Salvar checkpoints do modelo
+            \end{itemize}
+            
+            \vspace{0.5cm}
+            \textbf{Próximos Tópicos:}
+            \begin{itemize}
+                \item Otimizadores avançados (Adam, RMSprop)
+                \item Regularização (Dropout, L2)
+                \item Learning rate scheduling
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c, noframenumbering, plain]
+    \frametitle{~}
+    \vfill
+    \begin{center}
+        {\Huge Obrigado!}\vspace{1.5em}\\
+        {\Large \highlight{Dúvidas?}}\\
+    \end{center}
+    \vfill
+    \begin{center}
+        {\small Vamos para as implementações!}
+    \end{center}
+\end{frame}
+
+\end{document}

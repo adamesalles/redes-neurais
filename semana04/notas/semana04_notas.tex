@@ -1,0 +1,446 @@
+\documentclass[a4paper,12pt]{article}
+
+% Pacotes essenciais
+\usepackage[brazil]{babel}
+
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, shapes}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{minted}
+\usepackage{pgfplots}
+\usepackage[minted, most]{tcolorbox}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+
+% Configuração de cabeçalho e rodapé
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Curso de Redes Neurais - Semana 2}
+\fancyhead[R]{03 de setembro de 2025}
+\fancyfoot[C]{\thepage}
+
+
+% Configuração de links
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=blue
+}
+
+
+% Configurações do TikZ
+\usetikzlibrary{arrows.meta, shapes, positioning, calc}
+\pgfplotsset{compat=1.17}
+
+% Definição de cores
+\definecolor{nes_dark_orange}{RGB}{255,140,0}
+\definecolor{nes_dark_purple}{RGB}{128,0,128}
+\definecolor{highlight}{RGB}{255,165,0}
+
+% Comandos personalizados
+\newcommand{\highlight}[1]{{\color{nes_dark_orange}\textbf{#1}}}
+\newcommand{\grad}[2]{\frac{\partial #1}{\partial #2}}
+
+% Ambientes personalizados
+\tcbuselibrary{theorems}
+\newtcbtheorem[number within=section]{definicao}{Definição}{
+    colback=blue!5!white,
+    colframe=blue!75!black,
+    fonttitle=\bfseries
+}{def}
+
+\newtcbtheorem[number within=section]{teorema}{Teorema}{
+    colback=green!5!white,
+    colframe=green!75!black,
+    fonttitle=\bfseries
+}{teo}
+
+\newtcbtheorem[number within=section]{exemplo}{Exemplo}{
+    colback=orange!5!white,
+    colframe=orange!75!black,
+    fonttitle=\bfseries
+}{ex}
+
+\newtcbtheorem[number within=section]{observacao}{Observação}{
+    colback=yellow!5!white,
+    colframe=yellow!75!black,
+    fonttitle=\bfseries
+}{obs}
+
+\newtcbtheorem[number within=section]{algoritmo}{Algoritmo}{
+    colback=purple!5!white,
+    colframe=purple!75!black,
+    fonttitle=\bfseries
+}{alg}
+
+% Informações do documento
+\title{Notas de Aula - Semana 4 \\
+       \large Otimização de Redes Neurais\\
+       \itshape Curso de Redes Neurais}
+\author{Eduardo Adame}
+\date{27 de agosto de 2025}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+\section{Introdução}
+
+O treinamento de redes neurais é um processo iterativo de otimização que busca encontrar os parâmetros (pesos e bias) que minimizam uma função de perda. Após dominarmos o algoritmo de backpropagation para calcular gradientes, precisamos entender \highlight{como} e \highlight{quando} atualizar os pesos da rede.
+
+Este documento explora os detalhes práticos do treinamento, incluindo estratégias de atualização de pesos, normalização de dados, e implementação em frameworks modernos.
+
+\section{Estratégias de Atualização de Pesos}
+
+\subsection{O Problema Fundamental}
+
+Dado o gradiente $\grad{J}{W}$ para cada peso $W$ na rede, precisamos decidir:
+\begin{enumerate}
+    \item \textbf{Como atualizar}: Qual algoritmo de otimização usar?
+    \item \textbf{Quanto atualizar}: Qual taxa de aprendizado $\alpha$ escolher?
+    \item \textbf{Quando atualizar}: Após cada exemplo, ou após vários?
+\end{enumerate}
+
+\begin{definicao}{Regra de Atualização Básica}{basic_update}
+A atualização de pesos em redes neurais segue a regra geral:
+\[
+W^{(t+1)} = W^{(t)} - \alpha \cdot \grad{J}{W^{(t)}}
+\]
+onde $\alpha > 0$ é a taxa de aprendizado e $t$ indica a iteração.
+\end{definicao}
+
+\subsection{Descida de Gradiente em Lote (Batch Gradient Descent)}
+
+\begin{definicao}{Gradiente em Lote Completo}{batch_gd}
+No gradiente descendente em lote, calculamos o gradiente sobre \textbf{todo} o conjunto de treinamento:
+\[
+\grad{J}{W} = \frac{1}{N} \sum_{i=1}^{N} \grad{J_i}{W}
+\]
+onde $N$ é o número total de exemplos e $J_i$ é a perda para o exemplo $i$.
+\end{definicao}
+
+\textbf{Vantagens:}
+\begin{itemize}
+    \item Convergência estável e suave
+    \item Gradiente preciso da função de custo real
+    \item Garantias teóricas de convergência
+\end{itemize}
+
+\textbf{Desvantagens:}
+\begin{itemize}
+    \item Computacionalmente caro para datasets grandes
+    \item Requer manter todo o dataset em memória
+    \item Pode ficar preso em mínimos locais rasos
+    \item Uma única atualização por época
+\end{itemize}
+
+\subsection{Descida de Gradiente Estocástica (SGD)}
+
+\begin{definicao}{Gradiente Estocástico}{sgd}
+No SGD, atualizamos os pesos após \textbf{cada exemplo individual}:
+\[
+W^{(t+1)} = W^{(t)} - \alpha \cdot \grad{J_i}{W^{(t)}}
+\]
+onde $i$ é um exemplo escolhido aleatoriamente.
+\end{definicao}
+
+\textbf{Vantagens:}
+\begin{itemize}
+    \item Muito mais rápido por iteração
+    \item Pode escapar de mínimos locais devido ao ruído
+    \item Permite aprendizado online (streaming)
+    \item Requer menos memória
+\end{itemize}
+
+\textbf{Desvantagens:}
+\begin{itemize}
+    \item Convergência ruidosa e instável
+    \item Pode oscilar ao redor do mínimo
+    \item Dificulta uso de vetorização eficiente
+    \item Requer taxa de aprendizado menor
+\end{itemize}
+
+\subsection{Mini-batch Gradient Descent}
+
+\begin{definicao}{Mini-batch}{minibatch}
+Mini-batch é um compromisso entre batch e SGD, usando subconjuntos de tamanho $B$:
+\[
+\grad{J}{W} = \frac{1}{B} \sum_{i \in \mathcal{B}} \grad{J_i}{W}
+\]
+onde $\mathcal{B}$ é um mini-batch de $B$ exemplos, tipicamente $B \in \{16, 32, 64, 128\}$.
+\end{definicao}
+
+\begin{teorema}{Convergência do Mini-batch}{conv_minibatch}
+Para uma função de perda convexa $J$ com gradiente Lipschitz contínuo, o mini-batch gradient descent com taxa de aprendizado apropriada converge para o mínimo global com taxa $O(1/\sqrt{T})$, onde $T$ é o número de iterações.
+\end{teorema}
+
+\begin{observacao}{Tamanho Ótimo do Batch}{optimal_batch}
+O tamanho do batch influencia:
+\begin{itemize}
+    \item \textbf{Batch pequeno} ($B < 32$): Mais ruído, melhor generalização, convergência mais lenta
+    \item \textbf{Batch médio} ($B \in [32, 256]$): Equilíbrio entre velocidade e estabilidade
+    \item \textbf{Batch grande} ($B > 256$): Convergência suave, mas pode generalizar pior
+\end{itemize}
+\end{observacao}
+
+\section{Conceitos Fundamentais de Treinamento}
+
+\subsection{Época e Iteração}
+
+\begin{definicao}{Época}{epoch}
+Uma \textbf{época} é uma passada completa por todo o conjunto de treinamento. Se temos $N$ exemplos e usamos mini-batches de tamanho $B$, então:
+\[
+\text{Iterações por época} = \left\lceil \frac{N}{B} \right\rceil
+\]
+\end{definicao}
+
+\begin{exemplo}{Cálculo de Iterações}{calc_iter}
+Considere um dataset com 60.000 exemplos (como o MNIST):
+\begin{itemize}
+    \item \textbf{Batch completo}: 1 iteração por época
+    \item \textbf{SGD} (batch = 1): 60.000 iterações por época
+    \item \textbf{Mini-batch} (batch = 32): $\lceil 60.000/32 \rceil = 1.875$ iterações por época
+\end{itemize}
+\end{exemplo}
+
+\subsection{Embaralhamento de Dados}
+
+\begin{observacao}{Importância do Embaralhamento}{shuffling}
+Embaralhar os dados a cada época é crucial porque:
+\begin{enumerate}
+    \item Quebra correlações temporais nos dados
+    \item Garante que cada mini-batch seja representativo
+    \item Evita ciclos na trajetória de otimização
+    \item Melhora a convergência em até 30\% em alguns casos
+\end{enumerate}
+\end{observacao}
+
+\section{Normalização de Entrada}
+
+\subsection{Por que Normalizar?}
+
+A normalização dos dados de entrada é fundamental para o treinamento eficiente de redes neurais.
+
+\begin{teorema}{Efeito da Escala no Gradiente}{scale_gradient}
+Para uma rede com entrada $\mathbf{x}$ e pesos $\mathbf{W}$, se escalarmos a entrada por $\lambda$, o gradiente é escalado por:
+\[
+\grad{J}{\mathbf{W}}(\lambda \mathbf{x}) = \lambda \cdot \grad{J}{\mathbf{W}}(\mathbf{x})
+\]
+Isso pode causar instabilidade numérica quando features têm escalas muito diferentes.
+\end{teorema}
+
+\subsection{Métodos de Normalização}
+
+\begin{definicao}{Normalização Min-Max}{minmax}
+Transforma os dados para o intervalo $[0, 1]$:
+\[
+x'_i = \frac{x_i - x_{\min}}{x_{\max} - x_{\min}}
+\]
+ou para o intervalo $[-1, 1]$:
+\[
+x'_i = 2 \cdot \frac{x_i - x_{\min}}{x_{\max} - x_{\min}} - 1
+\]
+\end{definicao}
+
+\begin{definicao}{Padronização (Z-score)}{zscore}
+Transforma os dados para ter média zero e desvio padrão unitário:
+\[
+x'_i = \frac{x_i - \mu}{\sigma}
+\]
+onde $\mu = \frac{1}{N}\sum_{i=1}^{N} x_i$ e $\sigma = \sqrt{\frac{1}{N}\sum_{i=1}^{N} (x_i - \mu)^2}$
+\end{definicao}
+
+\begin{observacao}{Quando Usar Cada Método}{when_normalize}
+\begin{itemize}
+    \item \textbf{Min-Max}: Quando os dados têm limites conhecidos e distribuição uniforme
+    \item \textbf{Z-score}: Quando os dados seguem distribuição aproximadamente normal
+    \item \textbf{Normalização L2}: Para dados direcionais ou quando a magnitude não importa
+\end{itemize}
+\end{observacao}
+
+\section{Classificação Multiclasse}
+
+\subsection{Função Softmax}
+
+\begin{definicao}{Softmax}{softmax}
+A função softmax é uma generalização da função sigmoide para múltiplas classes:
+\[
+\text{softmax}(z_i) = \frac{e^{z_i}}{\sum_{k=1}^{K} e^{z_k}}
+\]
+onde $K$ é o número de classes. Propriedades:
+\begin{itemize}
+    \item $0 < \text{softmax}(z_i) < 1$ para todo $i$
+    \item $\sum_{i=1}^{K} \text{softmax}(z_i) = 1$
+\end{itemize}
+\end{definicao}
+
+\subsection{Entropia Cruzada Categórica}
+
+\begin{definicao}{Cross-Entropy Loss}{crossentropy}
+Para classificação multiclasse com $K$ classes:
+\[
+J = -\sum_{i=1}^{N} \sum_{k=1}^{K} y_{ik} \log(\hat{y}_{ik})
+\]
+onde $y_{ik}$ é 1 se o exemplo $i$ pertence à classe $k$ (one-hot encoding), e $\hat{y}_{ik}$ é a probabilidade predita.
+\end{definicao}
+
+\begin{teorema}{Gradiente Softmax-CrossEntropy}{softmax_grad}
+O gradiente da cross-entropy com relação às logits (entrada do softmax) tem forma elegante:
+\[
+\grad{J}{z_i} = \hat{y}_i - y_i
+\]
+Esta simplicidade é uma das razões para a popularidade desta combinação.
+\end{teorema}
+
+\section{Implementação Prática}
+
+\subsection{Algoritmo Completo de Treinamento}
+
+\begin{algoritmo}{Mini-batch SGD com Momentum}{sgd_momentum}
+\begin{algorithm}[H]
+\caption{Treinamento de Rede Neural com Mini-batch SGD}
+\begin{algorithmic}[1]
+\STATE \textbf{Entrada:} Dataset $\mathcal{D} = \{(\mathbf{x}_i, \mathbf{y}_i)\}_{i=1}^N$, taxa $\alpha$, batch size $B$, épocas $E$
+\STATE \textbf{Inicialização:} Pesos $W \sim \mathcal{N}(0, \sigma^2)$
+\FOR{época $= 1$ até $E$}
+    \STATE $\mathcal{D}_{shuffled} \leftarrow$ Embaralhar($\mathcal{D}$)
+    \STATE Dividir $\mathcal{D}_{shuffled}$ em mini-batches de tamanho $B$
+    \FOR{cada mini-batch $\mathcal{B}$}
+        \STATE // Forward Pass
+        \STATE $\hat{\mathbf{y}} \leftarrow$ ForwardPropagation($\mathcal{B}$, $W$)
+        \STATE $J \leftarrow$ CalcularPerda($\mathbf{y}$, $\hat{\mathbf{y}}$)
+        \STATE // Backward Pass
+        \STATE $\nabla W \leftarrow$ BackPropagation($J$, $W$)
+        \STATE // Atualização
+        \STATE $W \leftarrow W - \alpha \cdot \nabla W$
+    \ENDFOR
+    \STATE Avaliar no conjunto de validação
+\ENDFOR
+\STATE \textbf{Retorna:} Pesos treinados $W$
+\end{algorithmic}
+\end{algorithm}
+\end{algoritmo}
+
+\subsection{Considerações de Implementação}
+
+\begin{observacao}{Eficiência Computacional}{efficiency}
+Para maximizar a eficiência:
+\begin{enumerate}
+    \item \textbf{Vetorização}: Processar todo o mini-batch como uma matriz
+    \item \textbf{GPU}: Batches maiores aproveitam melhor o paralelismo
+    \item \textbf{Pré-processamento}: Normalizar offline quando possível
+    \item \textbf{Cache}: Manter mini-batches frequentes em memória rápida
+\end{enumerate}
+\end{observacao}
+
+\section{Diagnóstico e Debugging}
+
+\subsection{Curvas de Aprendizado}
+
+\begin{definicao}{Curvas de Treinamento}{learning_curves}
+Monitorar durante o treinamento:
+\begin{itemize}
+    \item \textbf{Loss de treino}: Deve diminuir consistentemente
+    \item \textbf{Loss de validação}: Indica generalização
+    \item \textbf{Acurácia}: Métrica interpretável do desempenho
+    \item \textbf{Norma do gradiente}: $\|\nabla W\|$ indica velocidade de aprendizado
+\end{itemize}
+\end{definicao}
+
+\subsection{Problemas Comuns e Soluções}
+
+\begin{observacao}{Diagnóstico de Problemas}{debugging}
+\begin{itemize}
+    \item \textbf{Loss explode} ($\to \infty$): Taxa de aprendizado muito alta
+    \item \textbf{Loss estagna}: Taxa muito baixa ou saturação
+    \item \textbf{Loss oscila}: Batch muito pequeno ou taxa alta
+    \item \textbf{Validação piora}: Overfitting, precisa regularização
+\end{itemize}
+\end{observacao}
+
+\section{Exemplo Prático: Implementação em Keras}
+
+\begin{exemplo}{Código Keras Completo}{keras_example}
+\begin{verbatim}
+import tensorflow as tf
+from tensorflow import keras
+import numpy as np
+
+# 1. Preparar dados
+(X_train, y_train), (X_test, y_test) = keras.datasets.mnist.load_data()
+
+# 2. Normalização
+X_train = X_train.reshape(-1, 784).astype('float32') / 255.0
+X_test = X_test.reshape(-1, 784).astype('float32') / 255.0
+
+# 3. One-hot encoding
+y_train = keras.utils.to_categorical(y_train, 10)
+y_test = keras.utils.to_categorical(y_test, 10)
+
+# 4. Construir modelo
+model = keras.Sequential([
+    keras.layers.Dense(128, activation='relu', input_shape=(784,)),
+    keras.layers.Dense(64, activation='relu'),
+    keras.layers.Dense(10, activation='softmax')
+])
+
+# 5. Compilar
+model.compile(
+    optimizer=keras.optimizers.SGD(learning_rate=0.01),
+    loss='categorical_crossentropy',
+    metrics=['accuracy']
+)
+
+# 6. Treinar
+history = model.fit(
+    X_train, y_train,
+    batch_size=32,
+    epochs=20,
+    validation_split=0.1,
+    shuffle=True  # Embaralhamento automático
+)
+\end{verbatim}
+\end{exemplo}
+
+\section{Considerações Avançadas}
+
+\subsection{Taxa de Aprendizado Adaptativa}
+
+\begin{observacao}{Learning Rate Scheduling}{lr_schedule}
+Estratégias para ajustar $\alpha$ durante o treinamento:
+\begin{itemize}
+    \item \textbf{Step decay}: $\alpha_t = \alpha_0 \cdot \gamma^{\lfloor t/s \rfloor}$
+    \item \textbf{Exponential decay}: $\alpha_t = \alpha_0 \cdot e^{-kt}$
+    \item \textbf{Cosine annealing}: $\alpha_t = \alpha_0 \cdot \cos(\frac{\pi t}{T})$
+\end{itemize}
+\end{observacao}
+
+\subsection{Inicialização de Pesos}
+
+\begin{teorema}{Inicialização de Xavier/Glorot}{xavier}
+Para manter a variância das ativações constante através das camadas, inicialize os pesos com:
+\[
+W_{ij} \sim \mathcal{U}\left(-\sqrt{\frac{6}{n_{in} + n_{out}}}, \sqrt{\frac{6}{n_{in} + n_{out}}}\right)
+\]
+onde $n_{in}$ e $n_{out}$ são o número de neurônios na camada anterior e atual.
+\end{teorema}
+
+
+\end{document}

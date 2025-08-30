@@ -245,14 +245,14 @@
                 
                 % Curva da derivada
                 \draw[blue, ultra thick, domain=-2:2, smooth, variable=\x]
-                    plot (\x, {1.5*exp(-\x*\x)});
+                    plot (\x, {2*(exp(-\x))/(1 + exp(-\x))^2});
                 
                 % Valor máximo
-                \draw[dashed, red] (-2, 0.375) -- (2, 0.375);
-                \node[red] at (2.5, 0.375) {$0.25$};
+                \draw[dashed, red] (-2, 0.55) -- (2, 0.55);
+                \node[red] at (2.5, 0.55) {$0.25$};
                 
                 % Anotação
-                \node[text width=3cm, align=center] at (0, -1.5) {
+                \node[text width=6cm, align=center] at (0, -1.5) {
                     \small Derivada sempre $\leq 0.25$
                 };
             \end{tikzpicture}
@@ -309,7 +309,7 @@
         \begin{column}{0.5\textwidth}
             \textbf{Recomendações Práticas:}
             \begin{itemize}
-                \item \highlight{Camadas ocultas:} ReLU (default), Leaky ReLU, ELU ou SiLU
+                \item \highlight{Camadas ocultas:} ReLU (default), Leaky ReLU, ELU ou SiLU.
                 \item \highlight{Camada de saída:}
                 \begin{itemize}
                     \item Regressão: Linear ou nenhuma ativação
