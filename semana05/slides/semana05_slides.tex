@@ -1,0 +1,537 @@
+\documentclass[xcolor=dvipsnames,t,aspectratio=169]{beamer}
+
+\usecolortheme{rose}
+\usecolortheme{dolphin}
+\usetheme{Boadilla}
+
+\input{../../templates/slides/imports}
+\input{../../templates/slides/settings}
+\input{../../templates/slides/commands}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, shapes, positioning}
+\usepackage{algorithmic}
+
+\titlegraphic{
+    \includegraphics[scale = 0.5]{../../templates/slides/logo}
+}
+
+\logo{
+\begin{tikzpicture}[overlay,remember picture]
+\node[below left = 0.2cm] at (current page.30) {
+    \includegraphics[width=0.1\textwidth]{../../templates/slides/logo}};
+\end{tikzpicture}
+}
+
+\newcommand{\highlight}[1]{{\color{nes_dark_orange} #1}}
+
+\title{Regularização e Dropout em Redes Neurais} 
+
+\author{
+    Eduardo Adame
+}
+
+\date{{\color{nes_dark_purple}  \textbf{Redes Neurais}\\[0.5em] 10 de setembro de 2025 }}
+
+\begin{document}
+
+\frame[plain]{\titlepage}
+\setcounter{framenumber}{0}
+
+\section{O Problema do Overfitting}
+
+\begin{frame}[c]{O Desafio do Overfitting}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{O que é Overfitting?}
+            \begin{itemize}
+                \item Modelo memoriza dados de treino
+                \item Não generaliza para novos dados
+                \item Performance ruim em validação/teste
+            \end{itemize}
+            
+            \vspace{0.5cm}
+            \textbf{Sinais de Overfitting:}
+            \begin{itemize}
+                \item[$\triangleright$] Erro de treino $\downarrow$ muito baixo
+                \item[$\triangleright$] Erro de validação $\uparrow$ alto
+                \item[$\triangleright$] Grande diferença entre os dois
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \begin{tikzpicture}[scale=0.8]
+                % Gráfico de erro
+                \draw[->] (0,0) -- (5,0) node[right] {Épocas};
+                \draw[->] (0,0) -- (0,3.5) node[above] {Erro};
+                
+                % Curva de treino
+                \draw[thick, blue] (0,3) .. controls (1,2) and (2,1.2) .. (4.5,0.5);
+                \node[blue, right] at (4.5,0.5) {Treino};
+                
+                % Curva de validação
+                \draw[thick, red] (0,3) .. controls (1,2.2) and (2,1.8) .. (3,1.7) .. controls (3.5,1.8) .. (4.5,2.5);
+                \node[red, right] at (4.5,2.5) {Validação};
+                
+                % Região de overfitting
+                \draw[dashed, gray] (2.5,0) -- (2.5,3.5);
+                \node[gray] at (3.5,3.2) {Overfitting};
+            \end{tikzpicture}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Estratégias de Regularização}
+    \begin{center}
+        \textbf{Como Prevenir Overfitting?}
+        
+        \vspace{0.5cm}
+        \begin{tikzpicture}[scale=0.9]
+            % Nó central
+            \node[circle, draw, fill=blue!20, minimum size=2cm] (center) {\textbf{Regularização}};
+            
+            % Técnicas ao redor
+            \node[rectangle, draw, fill=green!20, rounded corners] (penalty) at (0,3) {Penalização L2/L1};
+            \node[rectangle, draw, fill=yellow!20, rounded corners] (dropout) at (3,2) {\highlight{Dropout}};
+            \node[rectangle, draw, fill=orange!20, rounded corners] (early) at (3,-2) {Early Stopping};
+            \node[rectangle, draw, fill=red!20, rounded corners] (batch) at (0,-3) {Mini-batch SGD};
+            \node[rectangle, draw, fill=purple!20, rounded corners] (data) at (-3,-2) {Mais Dados};
+            \node[rectangle, draw, fill=cyan!20, rounded corners] (aug) at (-3,2) {Data Augmentation};
+            
+            % Conexões
+            \draw[->] (center) -- (penalty);
+            \draw[->] (center) -- (dropout);
+            \draw[->] (center) -- (early);
+            \draw[->] (center) -- (batch);
+            \draw[->] (center) -- (data);
+            \draw[->] (center) -- (aug);
+        \end{tikzpicture}
+    \end{center}
+\end{frame}
+
+\section{Regularização L2 e L1}
+
+\begin{frame}[c]{Regularização com Penalização de Pesos}
+    \begin{columns}[c]
+        \begin{column}{0.55\textwidth}
+            \textbf{Ideia Principal:}
+            \begin{itemize}
+                \item Adicionar termo de penalização à função de custo
+                \item Penalizar pesos grandes
+                \item Forçar modelo mais simples
+            \end{itemize}
+            
+            \vspace{0.5cm}
+            \textbf{Função de Custo Regularizada:}
+            $$J_{reg} = J_{original} + \lambda \cdot R(W)$$
+            
+            Onde:
+            \begin{itemize}
+                \item $\lambda$: força da regularização
+                \item $R(W)$: termo de regularização
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.45\textwidth}
+            \textbf{Tipos de Regularização:}
+            
+            % \vspace{0.3cm}
+            \highlight{L2 (Ridge):}
+            $$R(W) = \sum_{i,j} W_{ij}^2$$
+            
+            \begin{itemize}
+                \item[$+$] Pesos pequenos
+                \item[$+$] Suave
+            \end{itemize}
+            
+            % \vspace{0.3cm}
+            \highlight{L1 (Lasso):}
+            $$R(W) = \sum_{i,j} |W_{ij}|$$
+            
+            \begin{itemize}
+                \item[$+$] Esparsidade
+                \item[$+$] Seleção de features
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Efeito da Regularização L2}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Atualização com L2:}
+            $$W_{novo} = W_{antigo} - \alpha \left(\frac{\partial J}{\partial W} + 2\lambda W_{antigo}\right)$$
+            
+            \vspace{0.5cm}
+            \textbf{Interpretação:}
+            \begin{itemize}
+                \item ``Weight decay'' (decaimento de peso)
+                \item Pesos diminuem a cada iteração
+                \item Previne valores extremos
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \begin{tikzpicture}[scale=0.8]
+                % Espaço de pesos
+                \draw[->] (-0.5,0) -- (4,0) node[right] {$W_1$};
+                \draw[->] (0,-0.5) -- (0,4) node[above] {$W_2$};
+                
+                % Contornos sem regularização
+                \foreach \r in {0.5, 1, 1.5, 2} {
+                    \draw[gray!40] (1.5,1.5) ellipse ({1.3*\r} and {0.8*\r});
+                }
+                
+                % Círculo de regularização L2
+                \draw[thick, blue] (0,0) circle (1.8);
+                \node[blue] at (1.5,2) {Restrição L2};
+                
+                % Ponto ótimo
+                \node[circle, fill=red, inner sep=2pt] at (1.27,1.27) {};
+                \node[red, right] at (1.27,1.27) {Ótimo};
+                
+                % Mínimo original
+                \node[mark=x, mark size=4pt, thick] at (1.5,1.5) {};
+                \node[right] at (2,2.5) {Sem reg.};
+            \end{tikzpicture}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\section{Dropout}
+
+\begin{frame}[c]{Dropout: Desligando Neurônios Aleatoriamente}
+    \begin{columns}[c]
+        \begin{column}{0.55\textwidth}
+            \textbf{Conceito do Dropout:}
+            \begin{itemize}
+                \item Durante \highlight{treinamento}:
+                \begin{itemize}
+                    \item Desligar neurônios aleatoriamente
+                    \item Probabilidade $p$ de manter ativo
+                    \item Diferente a cada batch
+                \end{itemize}
+                \item Durante \highlight{teste}:
+                \begin{itemize}
+                    \item Todos neurônios ativos
+                    \item Pesos multiplicados por $p$
+                \end{itemize}
+            \end{itemize}
+            
+            \vspace{0.5cm}
+            \textbf{Por que funciona?}
+            \begin{itemize}
+                \item[$\checkmark$] Previne co-adaptação
+                \item[$\checkmark$] Como treinar ensemble
+                \item[$\checkmark$] Força redundância
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.45\textwidth}
+            \begin{tikzpicture}[scale=0.7]
+                % Título
+                \node[above] at (2,4) {\textbf{Treinamento}};
+                
+                % Camada de entrada
+                \foreach \i in {0,1,2} {
+                    \node[circle, draw, fill=green!30] (i\i) at (0,\i) {};
+                }
+                
+                % Camada oculta (com dropout)
+                \node[circle, draw, fill=blue!30] (h0) at (2,0) {};
+                \node[circle, draw, fill=gray!30, dashed] (h1) at (2,1) {$\times$};
+                \node[circle, draw, fill=blue!30] (h2) at (2,2) {};
+                \node[circle, draw, fill=gray!30, dashed] (h3) at (2,3) {$\times$};
+                
+                % Camada de saída
+                \node[circle, draw, fill=orange!30] (o0) at (4,1.5) {};
+                
+                % Conexões (apenas neurônios ativos)
+                \foreach \i in {0,1,2} {
+                    \draw[->] (i\i) -- (h0);
+                    \draw[->] (i\i) -- (h2);
+                }
+                \draw[->] (h0) -- (o0);
+                \draw[->] (h2) -- (o0);
+                
+                % Label
+                \node[red] at (2,-1) {p = 0.5};
+            \end{tikzpicture}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Implementação do Dropout}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Durante o Treinamento:}
+            \begin{enumerate}
+                \item Gerar máscara aleatória
+                \item Aplicar à camada
+                \item Forward e backward pass normal
+            \end{enumerate}
+            
+            \vspace{0.3cm}
+            \textbf{Pseudocódigo:}
+            \begin{itemize}
+                \item[] \texttt{mask = random(0,1) > dropout\_rate}
+                \item[] \texttt{output = input * mask}
+                \item[] \texttt{output = output / (1-dropout\_rate)}
+            \end{itemize}
+            
+            \vspace{0.3cm}
+            \textbf{Inverted Dropout:}
+            \begin{itemize}
+                \item Escala durante treino
+                \item Teste fica inalterado
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Valores Típicos de Dropout:}
+            
+            \vspace{0.3cm}
+            \begin{tikzpicture}[scale=0.8]
+                % Barras horizontais
+                \draw[fill=blue!30] (0,3) rectangle (2,3.5);
+                \node[left] at (0,3.25) {Entrada:};
+                \node[right] at (2,3.25) {0.1-0.2};
+                
+                \draw[fill=blue!50] (0,2) rectangle (3,2.5);
+                \node[left] at (0,2.25) {Ocultas:};
+                \node[right] at (3,2.25) {0.5};
+                
+                \draw[fill=blue!70] (0,1) rectangle (4,1.5);
+                \node[left] at (0,1.25) {Convolucionais:};
+                \node[right] at (4,1.25) {0.2-0.3};
+                
+                \draw[fill=blue!90] (0,0) rectangle (3.5,0.5);
+                \node[left] at (0,0.25) {Recorrentes:};
+                \node[right] at (3.5,0.25) {0.1-0.5};
+            \end{tikzpicture}
+            
+            \vspace{0.5cm}
+            \highlight{Dica:} Começar sem dropout, adicionar se houver overfitting
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Dropout vs Regularização L2}
+    \begin{center}
+        \begin{tabular}{|l|c|c|}
+            \hline
+            \textbf{Aspecto} & \textbf{Dropout} & \textbf{L2} \\
+            \hline
+            \hline
+            Tipo & Estocástico & Determinístico \\
+            \hline
+            Aplicação & Por camada & Global \\
+            \hline
+            Interpretação & Ensemble & Weight decay \\
+            \hline
+            Hiperparâmetros & Taxa por camada & $\lambda$ único \\
+            \hline
+            Tempo de treino & Mais lento & Normal \\
+            \hline
+            Teste & Precisa ajuste & Direto \\
+            \hline
+        \end{tabular}
+    \end{center}
+    
+    \vspace{0.5cm}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Quando usar Dropout:}
+            \begin{itemize}
+                \item[$\bullet$] Redes profundas
+                \item[$\bullet$] Muitos parâmetros
+                \item[$\bullet$] Dados limitados
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Quando usar L2:}
+            \begin{itemize}
+                \item[$\bullet$] Sempre (baseline)
+                \item[$\bullet$] Redes menores
+                \item[$\bullet$] Combinado com dropout
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Early Stopping}
+    \begin{columns}[c]
+        \begin{column}{0.55\textwidth}
+            \textbf{Conceito:}
+            \begin{itemize}
+                \item Parar treinamento antes da convergência
+                \item Monitorar erro de validação
+                \item Guardar melhor modelo
+            \end{itemize}
+            
+            \vspace{0.5cm}
+            \textbf{Estratégia Prática:}
+            \begin{enumerate}
+                \item Definir "patience" (paciência)
+                \item Se validação não melhora por N épocas
+                \item Restaurar melhor checkpoint
+                \item Parar treinamento
+            \end{enumerate}
+            
+            \vspace{0.3cm}
+            \highlight{Vantagem:} Simples e efetivo!
+        \end{column}
+        \begin{column}{0.45\textwidth}
+            \begin{tikzpicture}[scale=0.8]
+                % Eixos
+                \draw[->] (0,-0.2) -- (5,-0.2) node[right] {Épocas};
+                \draw[->] (0,-0.2) -- (0,3.5) node[above] {Erro};
+                
+                % Curvas
+                \draw[thick, blue] (0,3) .. controls (1,2) and (2,1.2) .. (4.5,0.3);
+                \node[blue] at (4.5,0.1) {Treino};
+                
+                \draw[thick, red] (0,3) .. controls (1,2.2) and (2,1.5) .. (2.5,1.4) .. controls (3,1.5) .. (4.5,2.2);
+                \node[red] at (4.5,2.4) {Val.};
+                
+                % Ponto de parada
+                \node[circle, fill=green, inner sep=2pt] at (2.5,1.4) {};
+                \draw[dashed, green, thick] (2.5,0) -- (2.5,3.5);
+                \node[green, above] at (2.5,3.5) {Parar aqui!};
+                
+                % Patience
+                \draw[<->, orange, thick] (2.5,0.5) -- (3.5,0.5);
+                \node[orange, below] at (3,0.5) {patience};
+            \end{tikzpicture}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c, fragile]{Implementação em Keras}
+    \begin{code}[Exemplo Completo com Regularização]{python}
+from tensorflow.keras import layers, regularizers
+
+model = Sequential([
+    # Camada com L2 e Dropout
+    layers.Dense(128, 
+                activation='relu',
+                kernel_regularizer=regularizers.l2(0.01)),
+    layers.Dropout(0.5),
+    
+    # Segunda camada oculta
+    layers.Dense(64, 
+                activation='relu',
+                kernel_regularizer=regularizers.l2(0.01)),
+    layers.Dropout(0.3),
+    
+    # Saída
+    layers.Dense(10, activation='softmax')
+])
+    \end{code}
+
+\end{frame}
+
+\begin{frame}[c, fragile]{Implementação em Keras}
+    \begin{code}[Exemplo Completo com Regularização]{python} 
+    # Compilar
+    model.compile(loss='categorical_crossentropy',
+              optimizer=Adam(learning_rate=0.01),
+              metrics=['accuracy'])
+
+    # Early stopping
+    early_stop = EarlyStopping(
+        monitor='val_loss',
+        patience=10,
+        restore_best_weights=True
+    )
+
+    model.fit(X_train, y_train,
+            validation_split=0.2,
+            callbacks=[early_stop])
+    \end{code}
+\end{frame}
+
+\begin{frame}[c]{Combinando Técnicas de Regularização}
+    \begin{center}
+        \textbf{Estratégia Recomendada:}
+        
+        \vspace{0.5cm}
+        \begin{tikzpicture}[scale=0.9]
+            % Fluxo de decisão
+            \node[rectangle, draw, fill=yellow!20, rounded corners] (start) at (0,0) {Começar sem regularização};
+            
+            \node[rectangle, draw, fill=orange!20, rounded corners] (check) at (0,-1.5) {Overfitting?};
+            
+            \node[rectangle, draw, fill=green!20, rounded corners] (l2) at (-4,-3) {Adicionar L2};
+            
+            \node[rectangle, draw, fill=blue!20, rounded corners] (dropout) at (0,-3) {Adicionar Dropout};
+            
+            \node[rectangle, draw, fill=red!20, rounded corners] (early) at (4,-3) {Early Stopping};
+
+            % Setas
+            \draw[-latex] (start) -- (check);
+            \draw[-latex] (check) -- (l2);
+            \draw[-latex] (check) -- (dropout);
+            \draw[-latex] (check) -- (early);
+        \end{tikzpicture}
+    \end{center}
+    
+    \highlight{Dicas Práticas:}
+    \begin{itemize}
+        \item Começar com early stopping (sempre!)
+        \item L2 com $\lambda$ pequeno (0.001 a 0.01)
+        \item Dropout gradual (0.2 $\to$ 0.5)
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[c]{Resumo: Regularização e Dropout}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Conceitos Principais:}
+            \begin{itemize}
+                \item \highlight{Overfitting}: memorização vs generalização
+                \item \highlight{Regularização L2/L1}: penalizar complexidade
+                \item \highlight{Dropout}: desativar neurônios
+                \item \highlight{Early Stopping}: parar no momento certo
+            \end{itemize}
+            
+            \vspace{0.5cm}
+            \textbf{Boas Práticas:}
+            \begin{itemize}
+                \item[$\checkmark$] Sempre usar validação
+                \item[$\checkmark$] Começar simples
+                \item[$\checkmark$] Adicionar regularização gradualmente
+                \item[$\checkmark$] Monitorar curvas de aprendizado
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Checklist de Regularização:}
+            \begin{enumerate}
+                \item Dividir dados (treino/val/teste)
+                \item Treinar modelo base
+                \item Identificar overfitting
+                \item Aplicar técnicas:
+                \begin{itemize}
+                    \item Early stopping
+                    \item L2 regularization
+                    \item Dropout (se necessário)
+                \end{itemize}
+                \item Ajustar hiperparâmetros
+                \item Validar no conjunto de teste
+            \end{enumerate}
+            
+            \vspace{0.3cm}
+            \highlight{Lembre-se:} Regularização é essencial para modelos que generalizam bem!
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c, noframenumbering, plain]
+    \frametitle{~}
+    \vfill
+    \begin{center}
+        {\Huge Obrigado!}\vspace{1.5em}\\
+        {\Large \highlight{Dúvidas?}}\\
+    \end{center}
+    \vfill
+    \begin{center}
+        {\small Próximo: Introdução às CNNs}
+    \end{center}
+\end{frame}
+
+\end{document}

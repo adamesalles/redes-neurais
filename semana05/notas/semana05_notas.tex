@@ -1,0 +1,447 @@
+\documentclass[a4paper,12pt]{article}
+
+% Pacotes essenciais
+\usepackage[brazil]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, shapes}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{minted}
+\usepackage{pgfplots}
+\usepackage[minted, most]{tcolorbox}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+% Configuração de cabeçalho e rodapé
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Curso de Redes Neurais - Semana 5}
+\fancyhead[R]{10 de setembro de 2025}
+\fancyfoot[C]{\thepage}
+
+% Configuração de links
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=blue
+}
+
+% Configurações do TikZ
+\usetikzlibrary{arrows.meta, shapes, positioning, calc}
+\pgfplotsset{compat=1.17}
+
+% Definição de cores
+\definecolor{nes_dark_orange}{RGB}{255,140,0}
+\definecolor{nes_dark_purple}{RGB}{128,0,128}
+\definecolor{highlight}{RGB}{255,165,0}
+
+% Comandos personalizados
+\newcommand{\highlight}[1]{{\color{nes_dark_orange}\textbf{#1}}}
+\newcommand{\grad}[2]{\frac{\partial #1}{\partial #2}}
+
+% Ambientes personalizados
+\tcbuselibrary{theorems}
+\newtcbtheorem[number within=section]{definicao}{Definição}{
+    colback=blue!5!white,
+    colframe=blue!75!black,
+    fonttitle=\bfseries
+}{def}
+
+\newtcbtheorem[number within=section]{teorema}{Teorema}{
+    colback=green!5!white,
+    colframe=green!75!black,
+    fonttitle=\bfseries
+}{teo}
+
+\newtcbtheorem[number within=section]{exemplo}{Exemplo}{
+    colback=orange!5!white,
+    colframe=orange!75!black,
+    fonttitle=\bfseries
+}{ex}
+
+\newtcbtheorem[number within=section]{observacao}{Observação}{
+    colback=yellow!5!white,
+    colframe=yellow!75!black,
+    fonttitle=\bfseries
+}{obs}
+
+\newtcbtheorem[number within=section]{algoritmo}{Algoritmo}{
+    colback=purple!5!white,
+    colframe=purple!75!black,
+    fonttitle=\bfseries
+}{alg}
+
+% Informações do documento
+\title{Notas de Aula - Semana 5 \\
+       \large Técnicas de Regularização em Redes Neurais\\
+       \itshape Curso de Redes Neurais}
+\author{Eduardo Adame}
+\date{10 de setembro de 2025}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+\section{Introdução}
+
+O treinamento bem-sucedido de redes neurais requer não apenas algoritmos de otimização eficientes, mas também técnicas para prevenir \highlight{overfitting} - quando o modelo memoriza os dados de treinamento em vez de aprender padrões generalizáveis. Este documento explora as principais técnicas de regularização, com foco especial em dropout, uma das inovações mais importantes em deep learning.
+
+A regularização é fundamental porque redes neurais modernas frequentemente têm milhões de parâmetros, tornando-as propensas a memorizar dados de treinamento. Sem regularização adequada, mesmo com algoritmos de otimização sofisticados, os modelos falham em generalizar para dados não vistos.
+
+\section{O Problema do Overfitting}
+
+\subsection{Caracterização do Overfitting}
+
+\begin{definicao}{Overfitting}{overfitting}
+Overfitting ocorre quando um modelo se ajusta excessivamente aos dados de treinamento, capturando ruído e particularidades específicas em vez de padrões gerais. Formalmente, seja $J_{train}$ o erro de treinamento e $J_{test}$ o erro de teste. Dizemos que há overfitting quando:
+\[
+J_{test} - J_{train} > \epsilon
+\]
+para algum limiar $\epsilon > 0$ significativo.
+\end{definicao}
+
+\begin{teorema}{Trade-off Viés-Variância}{bias_variance}
+O erro de generalização de um modelo pode ser decomposto em:
+\[
+\mathbb{E}[(y - \hat{f}(x))^2] = \text{Bias}^2[\hat{f}(x)] + \text{Var}[\hat{f}(x)] + \sigma^2
+\]
+onde:
+\begin{itemize}
+    \item Bias: erro devido a suposições simplificadoras do modelo
+    \item Variância: erro devido à sensibilidade a flutuações nos dados
+    \item $\sigma^2$: ruído irredutível nos dados
+\end{itemize}
+\end{teorema}
+
+\subsection{Diagnóstico de Overfitting}
+
+\begin{observacao}{Sinais de Overfitting}{sinais_overfitting}
+Indicadores práticos de overfitting incluem:
+\begin{enumerate}
+    \item \textbf{Divergência de curvas}: Erro de treinamento diminui enquanto erro de validação aumenta
+    \item \textbf{Pesos grandes}: $\|W\|$ cresce descontroladamente
+    \item \textbf{Sensibilidade a perturbações}: Pequenas mudanças na entrada causam grandes mudanças na saída
+    \item \textbf{Memorização}: Modelo consegue "decorar" labels aleatórios
+\end{enumerate}
+\end{observacao}
+
+\section{Regularização L2 e L1}
+
+\subsection{Penalização de Norma}
+
+\begin{definicao}{Regularização por Penalização}{penalty_reg}
+A regularização por penalização adiciona um termo à função de custo que penaliza a complexidade do modelo:
+\[
+J_{reg}(\theta) = J_{original}(\theta) + \lambda \cdot R(\theta)
+\]
+onde $\lambda > 0$ é o hiperparâmetro de regularização e $R(\theta)$ é o termo de regularização.
+\end{definicao}
+
+\subsection{Regularização L2 (Ridge)}
+
+\begin{definicao}{Regularização L2}{l2_reg}
+A regularização L2 penaliza a norma euclidiana ao quadrado dos pesos:
+\[
+R_{L2}(W) = \frac{1}{2}\sum_{i,j} W_{ij}^2 = \frac{1}{2}\|W\|_2^2
+\]
+A função de custo completa fica:
+\[
+J_{L2} = J_{original} + \frac{\lambda}{2} \sum_{l=1}^{L} \|W^{(l)}\|_2^2
+\]
+onde $L$ é o número de camadas.
+\end{definicao}
+
+\begin{teorema}{Efeito da Regularização L2}{l2_effect}
+A atualização de pesos com regularização L2 pode ser escrita como:
+\[
+W^{(t+1)} = W^{(t)} - \alpha \grad{J_{original}}{W} - \alpha \lambda W^{(t)}
+\]
+Rearranjando:
+\[
+W^{(t+1)} = (1 - \alpha \lambda) W^{(t)} - \alpha \grad{J_{original}}{W}
+\]
+Isso mostra que L2 causa "weight decay" - os pesos decaem exponencialmente na ausência de gradiente.
+\end{teorema}
+
+\subsection{Regularização L1 (Lasso)}
+
+\begin{definicao}{Regularização L1}{l1_reg}
+A regularização L1 penaliza a norma L1 (Manhattan) dos pesos:
+\[
+R_{L1}(W) = \sum_{i,j} |W_{ij}| = \|W\|_1
+\]
+\end{definicao}
+
+\begin{observacao}{L1 vs L2}{l1_vs_l2}
+Comparação entre regularização L1 e L2:
+\begin{itemize}
+    \item \textbf{L2}: Reduz uniformemente todos os pesos, mantendo proporções
+    \item \textbf{L1}: Força esparsidade, zerando pesos menos importantes
+    \item \textbf{Gradiente L2}: $\lambda W$ (linear nos pesos)
+    \item \textbf{Gradiente L1}: $\lambda \cdot \text{sign}(W)$ (constante exceto em zero)
+\end{itemize}
+\end{observacao}
+
+\section{Dropout}
+
+\subsection{Conceito Fundamental}
+
+\begin{definicao}{Dropout}{dropout_def}
+Dropout é uma técnica de regularização que, durante o treinamento, desativa aleatoriamente neurônios com probabilidade $p$ (dropout rate). Seja $\mathbf{r}^{(l)} \sim \text{Bernoulli}(1-p)$ um vetor de máscaras binárias. A ativação com dropout é:
+\[
+\tilde{\mathbf{a}}^{(l)} = \mathbf{r}^{(l)} \odot \mathbf{a}^{(l)}
+\]
+onde $\odot$ denota produto elemento a elemento (Hadamard).
+\end{definicao}
+
+\begin{teorema}{Dropout como Ensemble}{dropout_ensemble}
+Dropout pode ser interpretado como treinamento de um ensemble exponencialmente grande de redes neurais que compartilham pesos. Para uma rede com $n$ neurônios, dropout treina implicitamente $2^n$ sub-redes diferentes.
+\end{teorema}
+
+\subsection{Implementação do Dropout}
+
+\begin{algoritmo}{Dropout Durante Treinamento}{dropout_train}
+\begin{algorithm}[H]
+\caption{Forward Pass com Dropout}
+\begin{algorithmic}[1]
+\STATE \textbf{Entrada:} Ativação $\mathbf{a}^{(l)}$, taxa de dropout $p$
+\STATE \textbf{Fase de Treinamento:}
+\STATE Gerar máscara: $\mathbf{r}^{(l)} \sim \text{Bernoulli}(1-p)$
+\STATE Aplicar máscara: $\tilde{\mathbf{a}}^{(l)} = \mathbf{r}^{(l)} \odot \mathbf{a}^{(l)}$
+\STATE Escalar (inverted dropout): $\tilde{\mathbf{a}}^{(l)} = \frac{\tilde{\mathbf{a}}^{(l)}}{1-p}$
+\STATE Propagar: $\mathbf{z}^{(l+1)} = W^{(l+1)}\tilde{\mathbf{a}}^{(l)} + \mathbf{b}^{(l+1)}$
+\STATE \textbf{Retorna:} $\mathbf{z}^{(l+1)}$
+\end{algorithmic}
+\end{algorithm}
+\end{algoritmo}
+
+\begin{observacao}{Inverted Dropout}{inverted_dropout}
+O "inverted dropout" escala as ativações por $\frac{1}{1-p}$ durante o treinamento, permitindo que a rede seja usada sem modificações durante o teste. Isso é preferível ao dropout tradicional, que requer escalar os pesos por $(1-p)$ durante o teste.
+\end{observacao}
+
+\subsection{Análise Matemática do Dropout}
+
+\begin{teorema}{Esperança e Variância com Dropout}{dropout_stats}
+Seja $a$ uma ativação e $\tilde{a}$ sua versão com dropout (inverted). Então:
+\begin{align}
+\mathbb{E}[\tilde{a}] &= a \\
+\text{Var}[\tilde{a}] &= \frac{p}{1-p} \cdot a^2
+\end{align}
+A esperança é preservada, mas a variância aumenta com a taxa de dropout.
+\end{teorema}
+
+\begin{definicao}{Dropout como Regularização Adaptativa}{adaptive_reg}
+Dropout pode ser visto como uma forma de regularização L2 adaptativa com penalização:
+\[
+\lambda_{eff} \approx \frac{p}{1-p} \cdot \|\nabla J\|^2
+\]
+onde a força da regularização se adapta automaticamente ao gradiente local.
+\end{definicao}
+
+\subsection{Variantes do Dropout}
+
+\begin{observacao}{Tipos de Dropout}{dropout_types}
+\begin{itemize}
+    \item \textbf{Standard Dropout}: Aplicado a unidades individuais
+    \item \textbf{DropConnect}: Aplicado a conexões (pesos) em vez de unidades
+    \item \textbf{Spatial Dropout}: Para CNNs, desativa canais inteiros
+    \item \textbf{Variational Dropout}: Mesma máscara para toda sequência em RNNs
+    \item \textbf{Concrete Dropout}: Taxa de dropout aprendida automaticamente
+\end{itemize}
+\end{observacao}
+
+\section{Early Stopping}
+
+\subsection{Fundamento Teórico}
+
+\begin{definicao}{Early Stopping}{early_stopping}
+Early stopping interrompe o treinamento quando o erro de validação para de melhorar por $k$ épocas consecutivas (patience). Formalmente, paramos na época $t^*$ onde:
+\[
+t^* = \arg\min_{t \leq T} J_{val}(t) \text{ tal que } J_{val}(s) > J_{val}(t^*) \text{ para } s \in [t^*+1, t^*+k]
+\]
+\end{definicao}
+
+\begin{teorema}{Early Stopping como Regularização}{early_reg}
+Early stopping é equivalente a regularização L2 com parâmetro:
+\[
+\lambda_{eff} \approx \frac{1}{\alpha \cdot t^*}
+\]
+onde $\alpha$ é a taxa de aprendizado e $t^*$ é o número de iterações até a parada.
+\end{teorema}
+
+\subsection{Implementação Prática}
+
+\begin{algoritmo}{Early Stopping com Checkpoint}{early_stop_algo}
+\begin{algorithm}[H]
+\caption{Early Stopping com Restauração de Melhor Modelo}
+\begin{algorithmic}[1]
+\STATE Inicializar: $best\_loss = \infty$, $patience\_counter = 0$
+\FOR{época $t = 1$ até $max\_epochs$}
+    \STATE Treinar uma época
+    \STATE $current\_loss = $ avaliar no conjunto de validação
+    \IF{$current\_loss < best\_loss$}
+        \STATE $best\_loss = current\_loss$
+        \STATE $best\_weights = $ copiar pesos atuais
+        \STATE $patience\_counter = 0$
+    \ELSE
+        \STATE $patience\_counter = patience\_counter + 1$
+    \ENDIF
+    \IF{$patience\_counter \geq patience$}
+        \STATE \textbf{break}
+    \ENDIF
+\ENDFOR
+\STATE Restaurar $best\_weights$
+\end{algorithmic}
+\end{algorithm}
+\end{algoritmo}
+
+\section{Comparação de Técnicas de Regularização}
+
+\subsection{Eficácia Relativa}
+
+\begin{observacao}{Quando Usar Cada Técnica}{when_to_use}
+\begin{itemize}
+    \item \textbf{L2}: Sempre útil como baseline, especialmente para redes pequenas
+    \item \textbf{L1}: Quando esparsidade é desejada ou para seleção de features
+    \item \textbf{Dropout}: Essencial para redes profundas com muitos parâmetros
+    \item \textbf{Early Stopping}: Sempre recomendado, custo computacional zero
+    \item \textbf{Data Augmentation}: Quando possível no domínio (imagens, áudio)
+    \item \textbf{Batch Normalization}: Tem efeito regularizador além da normalização
+\end{itemize}
+\end{observacao}
+
+\begin{exemplo}{Combinação de Técnicas}{combination}
+Para uma rede neural profunda típica, uma estratégia efetiva seria:
+\begin{enumerate}
+    \item Early stopping com patience = 10-20 épocas
+    \item L2 regularization com $\lambda = 10^{-4}$ a $10^{-2}$
+    \item Dropout com $p = 0.5$ nas camadas densas
+    \item Dropout com $p = 0.2$ nas camadas convolucionais
+    \item Data augmentation se aplicável
+\end{enumerate}
+\end{exemplo}
+
+\section{Análise Experimental}
+
+\subsection{Efeito do Dropout Rate}
+
+\begin{observacao}{Escolha da Taxa de Dropout}{dropout_rate_choice}
+Experimentos empíricos sugerem:
+\begin{itemize}
+    \item $p = 0.5$ é ótimo para camadas totalmente conectadas
+    \item $p = 0.2 \text{ a } 0.3$ para camadas convolucionais
+    \item $p = 0.1 \text{ a } 0.2$ para camadas de entrada
+    \item $p$ maior para redes com mais parâmetros
+    \item Reduzir $p$ gradualmente em camadas mais profundas
+\end{itemize}
+\end{observacao}
+
+\begin{observacao}{Limite Superior do Dropout}{dropout_limit}
+Para manter a capacidade de aprendizado, a taxa de dropout deve satisfazer:
+\[
+p < 1 - \frac{1}{\sqrt{n}}
+\]
+onde $n$ é o número de neurônios na camada. Para $n = 100$, isso dá $p_{max} \approx 0.9$.
+\end{observacao}
+
+\section{Considerações Avançadas}
+
+\subsection{Dropout e Batch Normalization}
+
+\begin{observacao}{Interação Dropout-BatchNorm}{dropout_bn}
+A ordem de aplicação importa:
+\begin{enumerate}
+    \item \textbf{Recomendado}: Dense → BatchNorm → Activation → Dropout
+    \item BatchNorm antes de Dropout estabiliza as distribuições
+    \item Dropout após ativação preserva não-linearidade
+\end{enumerate}
+\end{observacao}
+
+\subsection{Regularização Implícita}
+
+\begin{definicao}{Regularização Implícita}{implicit_reg}
+Algumas técnicas têm efeito regularizador não intencional:
+\begin{itemize}
+    \item \textbf{SGD}: Ruído do mini-batch atua como regularização
+    \item \textbf{Batch Normalization}: Adiciona ruído através das estatísticas do batch
+    \item \textbf{Data Augmentation}: Aumenta efetivamente o tamanho do dataset
+    \item \textbf{Label Smoothing}: Suaviza distribuições de saída
+\end{itemize}
+\end{definicao}
+
+\section{Debugging e Diagnóstico}
+
+\subsection{Validação da Implementação}
+
+\begin{observacao}{Testes de Sanidade}{sanity_checks}
+Para verificar se a regularização está funcionando:
+\begin{enumerate}
+    \item \textbf{Sem regularização}: Modelo deve conseguir overfit em dataset pequeno
+    \item \textbf{Dropout = 1}: Rede deve falhar completamente (todas unidades desligadas)
+    \item \textbf{L2 muito alto}: Performance deve degradar significativamente
+    \item \textbf{Monitorar normas}: $\|W\|$ deve ser menor com regularização
+\end{enumerate}
+\end{observacao}
+
+\subsection{Métricas de Diagnóstico}
+
+\begin{definicao}{Gap de Generalização}{gen_gap}
+O gap de generalização é definido como:
+\[
+\text{Gap} = \frac{J_{test} - J_{train}}{J_{train}}
+\]
+Valores típicos:
+\begin{itemize}
+    \item Gap $< 0.1$: Boa generalização
+    \item Gap $\in [0.1, 0.3]$: Regularização moderada necessária
+    \item Gap $> 0.3$: Forte regularização necessária
+\end{itemize}
+\end{definicao}
+
+\section{Conclusões e Recomendações}
+
+\subsection{Estratégia Prática}
+
+\begin{algoritmo}{Pipeline de Regularização}{reg_pipeline}
+\begin{enumerate}
+    \item Começar sem regularização para estabelecer baseline
+    \item Adicionar early stopping (sempre)
+    \item Se overfitting persistir, adicionar L2 com $\lambda = 10^{-4}$
+    \item Aumentar $\lambda$ gradualmente se necessário
+    \item Adicionar dropout começando com $p = 0.2$
+    \item Ajustar dropout por camada se necessário
+    \item Considerar data augmentation se aplicável
+    \item Fine-tuning final dos hiperparâmetros
+\end{enumerate}
+\end{algoritmo}
+
+\subsection{Trade-offs}
+
+\begin{observacao}{Considerações Práticas}{practical}
+\begin{itemize}
+    \item \textbf{Tempo de treinamento}: Dropout aumenta em ~2-3x
+    \item \textbf{Memória}: L2 não adiciona custo, Dropout adiciona máscaras
+    \item \textbf{Inferência}: L2 não afeta, Dropout precisa ser desligado
+    \item \textbf{Interpretabilidade}: L1 produz modelos mais interpretáveis
+\end{itemize}
+\end{observacao}
+
+A regularização é essencial para o sucesso de redes neurais profundas. A combinação cuidadosa de diferentes técnicas, ajustada ao problema específico, é fundamental para obter modelos que generalizam bem. O dropout, em particular, revolucionou o treinamento de redes profundas e continua sendo uma das técnicas mais importantes em deep learning moderno.
+
+\end{document}

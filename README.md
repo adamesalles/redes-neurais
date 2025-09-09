@@ -20,6 +20,7 @@ Esse curso faz parte do Modulo IV do NES [Novo Ensino Suplementar](https://www.n
 | 2 | 20/08/25 | Introdução às Redes Neurais | [Slides](semana02/slides/) \| [Exercícios](semana02/exercicios/) \| [Notas](semana02/notas/) |
 | 3 | 27/08/25 | Retropropagação em Redes Neurais | [Slides](semana03/slides/) \| [Exercícios](semana03/exercicios/) \| [Notas](semana03/notas/) |
 | 4 | 03/09/25 | Treinamento de Redes Neurais | [Slides](semana04/slides/) \| [Exercícios](semana04/exercicios/) \| [Notas](semana04/notas/) |
+| 5 | 10/09/25 | Regularização e Dropout | [Slides](semana05/slides/) \| [Exercícios](semana05/exercicios/) \| [Notas](semana05/notas/) |
 
 ## 🎯 Objetivos do Curso
 
