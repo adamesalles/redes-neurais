@@ -1,0 +1,624 @@
+\documentclass[xcolor=dvipsnames,t,aspectratio=169]{beamer}
+
+\usecolortheme{rose}
+\usecolortheme{dolphin}
+\usetheme{Boadilla}
+
+\input{../../templates/slides/imports}
+\input{../../templates/slides/settings}
+\input{../../templates/slides/commands}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, shapes, positioning, calc}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+
+\titlegraphic{
+    \includegraphics[scale = 0.5]{../../templates/slides/logo}
+}
+
+\logo{
+\begin{tikzpicture}[overlay,remember picture]
+\node[below left = 0.2cm] at (current page.30) {
+    \includegraphics[width=0.1\textwidth]{../../templates/slides/logo}};
+\end{tikzpicture}
+}
+
+\newcommand{\highlight}[1]{{\color{nes_dark_orange} #1}}
+
+\title{Introdução às Redes Neurais Convolucionais (CNNs)} 
+
+\author{
+    Eduardo Adame
+}
+
+\date{{\color{nes_dark_purple}  \textbf{Redes Neurais}\\[0.5em] 24 de setembro de 2025 }}
+
+\begin{document}
+
+\frame[plain]{\titlepage}
+\setcounter{framenumber}{0}
+
+\section{Motivação e Contexto}
+
+\begin{frame}[c]{De MLPs para CNNs: Por que Mudar?}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Limitações das MLPs para Imagens:}
+            \begin{itemize}
+                \item \highlight{Explosão de parâmetros}
+                \begin{itemize}
+                    \item Imagem 200x200 RGB = 120.000 entradas
+                    \item Uma camada: 14.4 bilhões de pesos!
+                \end{itemize}
+                \item \highlight{Perda de estrutura espacial}
+                \begin{itemize}
+                    \item MLP trata pixels como lista
+                    \item Ignora proximidade dos pixels
+                \end{itemize}
+                \item \highlight{Sem invariância à translação}
+                \begin{itemize}
+                    \item Objeto em posições diferentes
+                    \item Requer reaprender padrões
+                \end{itemize}
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \begin{tikzpicture}[scale=0.8]
+                % MLP representation
+                \node at (0,3.5) {\textbf{MLP: Visão "Achatada"}};
+                % Input pixels flattened
+                \foreach \i in {0,...,4} {
+                    \draw[fill=blue!20] (0,2.5-\i*0.3) rectangle (0.3,2.2-\i*0.3);
+                }
+                \node at (0.15,0.5) {$\vdots$};
+                
+                % Fully connected to hidden layer
+                \foreach \i in {0,...,2} {
+                    \node[circle, draw, fill=orange!30] (h\i) at (2,2-\i*0.8) {};
+                    \foreach \j in {0,...,4} {
+                        \draw[gray, opacity=0.3] (0.3,2.35-\j*0.3) -- (h\i);
+                    }
+                }
+            \end{tikzpicture}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{A Natureza Hierárquica da Visão}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Como construímos representações visuais:}
+            \begin{itemize}
+                \item \highlight{Nível 1}: Detectores de bordas
+                \item \highlight{Nível 2}: Formas simples
+                \item \highlight{Nível 3}: Partes de objetos
+                \item \highlight{Nível 4}: Objetos completos
+            \end{itemize}
+            
+            \vspace{0.5cm}
+            \textbf{Exemplo - Reconhecendo um Gato:}
+            \begin{itemize}
+                \item Bordas $\to$ Círculos
+                \item Círculos $\to$ Olhos
+                \item Olhos + Textura $\to$ Face de gato
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \begin{tikzpicture}[scale=0.9]
+                % Hierarchical feature visualization
+                % Level 1: Edges
+                \node at (0,3.5) {\small \textbf{Bordas}};
+                \draw[thick] (-0.5,3) -- (0.5,3);
+                \draw[thick] (0,2.5) -- (0,3);
+                \draw[thick] (-0.3,2.7) -- (0.3,3.3);
+                
+                % Arrow
+                \draw[->, ultra thick, gray] (1,2.8) -- (2,2.8);
+                
+                % Level 2: Shapes
+                \node at (3,3.5) {\small \textbf{Formas}};
+                \draw[thick] (3,3) circle (0.3);
+                \draw[thick] (2.5,2.5) rectangle (3.5,3);
+                
+                % Arrow
+                \draw[->, ultra thick, gray] (4,2.8) -- (5,2.8);
+                
+                % Level 3: Parts
+                \node at (6,3.5) {\small \textbf{Partes}};
+                % Simple eye representation
+                \draw[thick] (6,2.75) circle (0.4);
+                \draw[fill=black] (6,2.75) circle (0.15);
+                
+                % Arrow down
+                \draw[->, ultra thick, gray] (6,2.2) -- (6,1.2);
+                
+                % Level 4: Complete object
+                \node at (6,0.8) {\small \textbf{Objeto Completo}};
+                % Simple cat face
+                \draw[thick] (6,0) circle (0.5);
+                \draw[fill=black] (5.8,0.1) circle (0.08);
+                \draw[fill=black] (6.2,0.1) circle (0.08);
+                \draw (5.8,-0.2) .. controls (6,-0.1) .. (6.2,-0.2);
+            \end{tikzpicture}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Conceito de Convolução: Filtros Locais}
+    \begin{columns}[c]
+        \begin{column}{0.55\textwidth}
+            \textbf{O que é uma Convolução?}
+            \begin{itemize}
+                \item \highlight{Operação matemática} entre imagem e filtro
+                \item Filtro (kernel) "desliza" sobre a imagem
+                \item Detecta padrões locais específicos
+            \end{itemize}
+            
+            \vspace{0.3cm}
+            \textbf{Vantagens sobre MLP:}
+            \begin{itemize}
+                \item \highlight{Compartilhamento de pesos}: mesmo filtro em toda imagem
+                \item \highlight{Conectividade local}: neurônio vê apenas região
+                \item \highlight{Invariância à translação}: detecta padrão em qualquer posição
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.45\textwidth}
+            \textbf{Exemplo: Detector de Bordas Verticais}
+            \begin{tikzpicture}[scale=0.7]
+                % Kernel
+                \node at (0,2.5) {\small \textbf{Filtro}};
+                \draw[fill=blue!20] (-0.5,1.5) grid (1,0);
+                \node at (-0.25,1.25) {-1};
+                \node at (0.25,1.25) {1};
+                \node at (0.75,1.25) {-1};
+                \node at (-0.25,0.75) {-1};
+                \node at (0.25,0.75) {1};
+                \node at (0.75,0.75) {-1};
+                \node at (-0.25,0.25) {-1};
+                \node at (0.25,0.25) {1};
+                \node at (0.75,0.25) {-1};
+                
+                % Arrow
+                \draw[->, thick] (1.5,0.75) -- (2.5,0.75);
+                
+                % Result visualization
+                \node at (4,2.5) {\small \textbf{Resposta}};
+                \draw[fill=white] (3,-0.5) rectangle (5,2);
+                \draw[line width=3pt, gray] (4,-0.5) -- (4,2);
+                \node at (4,-1) {\small Borda detectada!};
+            \end{tikzpicture}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\section{Componentes Fundamentais}
+
+\begin{frame}[c]{Camadas Convolucionais: O Coração das CNNs}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Operação de Convolução:}
+            
+            Para cada posição $(i,j)$:
+            $$y_{i,j} = \sum_{m,n} x_{i+m,j+n} \cdot w_{m,n} + b$$
+            
+            \vspace{0.3cm}
+            \textbf{Hiperparâmetros Importantes:}
+            \begin{itemize}
+                \item \highlight{Tamanho do filtro}: 3$\times$3, 5$\times$5, 7$\times$7
+                \item \highlight{Número de filtros}: 32, 64, 128...
+                \item \highlight{Stride}: passo do filtro (1, 2...)
+                \item \highlight{Padding}: zeros nas bordas
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \begin{tikzpicture}[scale=0.6]
+                % Input
+                \node at (0,4) {\textbf{Entrada 5$\times$5}};
+                \draw[step=0.5] (0,0) grid (2.5,2.5);
+                
+                % Highlight kernel area
+                \draw[ultra thick, red] (0,1.5) rectangle (1.5,3);
+                
+                % Kernel
+                \node at (4,4) {\textbf{Filtro 3$\times$3}};
+                \draw[step=0.5, fill=orange!20] (3.49, 1.49) grid (5,3);
+                
+                % Multiplication symbol
+                \node at (5.75,2.25) {$\times$};
+                
+                % Output
+                \node at (7.5,4) {\textbf{Saída}};
+                \draw[step=0.5] (6.49,0.99) grid (8,2.5);
+                \draw[fill=green!40] (6.5,2) rectangle (7,2.5);
+                
+                % Arrow showing sliding
+                \draw[->, ultra thick, blue, dashed] (0.75,0.75) -- (1.25,0.75);
+                \node[below] at (1,0.3) {\small desliza};
+            \end{tikzpicture}
+            
+            \vspace{0.3cm}
+            \textbf{Múltiplos Filtros = Múltiplos Mapas de Características}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Pooling: Reduzindo Dimensionalidade}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Por que usar Pooling?}
+            \begin{itemize}
+                \item Reduz tamanho espacial
+                \item Diminui número de parâmetros
+                \item Adiciona invariância a pequenas translações
+                \item Controla overfitting
+            \end{itemize}
+            
+            \vspace{0.5cm}
+            \textbf{Tipos Comuns:}
+            \begin{itemize}
+                \item \highlight{Max Pooling}: valor máximo da região
+                \item \highlight{Average Pooling}: média dos valores
+                \item Geralmente 2$\times$2 com stride 2
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Exemplo: Max Pooling 2$\times$2}
+            \vspace{1cm}
+
+            \begin{tikzpicture}[scale=0.8]
+                % Input
+                \node at (0.2,2.5) {\small \textbf{Entrada 4$\times$4}};
+                \draw[step=0.4] (0,0) grid (1.6,1.6);
+                % Fill with sample values
+                \node[scale=0.6] at (0.2,1.4) {1};
+                \node[scale=0.6] at (0.6,1.4) {3};
+                \node[scale=0.6] at (1.0,1.4) {2};
+                \node[scale=0.6] at (1.4,1.4) {4};
+                
+                \node[scale=0.6] at (0.2,1.0) {5};
+                \node[scale=0.6] at (0.6,1.0) {6};
+                \node[scale=0.6] at (1.0,1.0) {1};
+                \node[scale=0.6] at (1.4,1.0) {2};
+                
+                \node[scale=0.6] at (0.2,0.6) {3};
+                \node[scale=0.6] at (0.6,0.6) {2};
+                \node[scale=0.6] at (1.0,0.6) {3};
+                \node[scale=0.6] at (1.4,0.6) {4};
+                
+                \node[scale=0.6] at (0.2,0.2) {1};
+                \node[scale=0.6] at (0.6,0.2) {0};
+                \node[scale=0.6] at (1.0,0.2) {1};
+                \node[scale=0.6] at (1.4,0.2) {2};
+                
+                % Highlight pools
+                \draw[ultra thick, red] (0,0.8) rectangle (0.8,1.6);
+                \draw[ultra thick, blue] (0.8,0.8) rectangle (1.6,1.6);
+                \draw[ultra thick, green] (0,0) rectangle (0.8,0.8);
+                \draw[ultra thick, orange] (0.8,0) rectangle (1.6,0.8);
+                
+                % Arrow
+                \draw[->, thick] (2,0.8) -- (2.8,0.8);
+                
+                % Output
+                \node at (3.7,2.5) {\small \textbf{Saída 2$\times$2}};
+                \draw[step=0.5] (3.49,0.49) grid (4.5,1.5);
+                \node at (3.75,1.25) {6};
+                \node at (4.25,1.25) {4};
+                \node at (3.75,0.75) {3};
+                \node at (4.25,0.75) {4};
+            \end{tikzpicture}
+            
+            \vspace{0.3cm}
+            \centering
+            \highlight{Redução de 75\% no tamanho!}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Arquitetura Típica de uma CNN}
+    \begin{center}
+        \begin{tikzpicture}[scale=0.85]
+            % Input image
+            \node at (-1,0) {\textbf{Entrada}};
+            \draw[fill=blue!20] (0,0) rectangle (1,2);
+            \draw[fill=blue!20] (0.1,-0.1) rectangle (1.1,1.9);
+            \draw[fill=blue!20] (0.2,-0.2) rectangle (1.2,1.8);
+            \node at (0.5,-0.6) {\small RGB};
+            
+            % Conv1
+            \draw[->, thick] (1.4,1) -- (1.8,1);
+            \node at (2.5,2.5) {\tiny Conv+ReLU};
+            \foreach \i in {0,...,3} {
+                \draw[fill=green!30] (2+\i*0.15,0.5-\i*0.05) rectangle (2.8+\i*0.15,1.8-\i*0.05);
+            }
+            \node at (2.5,-0.6) {\small 32 filtros};
+            
+            % Pool1
+            \draw[->, thick] (3.5,1) -- (3.9,1);
+            \node at (4.3,2.5) {\tiny MaxPool};
+            \foreach \i in {0,...,3} {
+                \draw[fill=green!40] (4+\i*0.1,0.7-\i*0.03) rectangle (4.5+\i*0.1,1.5-\i*0.03);
+            }
+            
+            % Conv2
+            \draw[->, thick] (5,1) -- (5.4,1);
+            \node at (6,2.5) {\tiny Conv+ReLU};
+            \foreach \i in {0,...,5} {
+                \draw[fill=orange!30] (5.7+\i*0.1,0.8-\i*0.02) rectangle (6.2+\i*0.1,1.4-\i*0.02);
+            }
+            \node at (6,-0.6) {\small 64 filtros};
+            
+            % Pool2
+            \draw[->, thick] (6.8,1) -- (7.2,1);
+            \node at (7.5,2.5) {\tiny MaxPool};
+            \foreach \i in {0,...,5} {
+                \draw[fill=orange!40] (7.3+\i*0.08,0.9-\i*0.01) rectangle (7.6+\i*0.08,1.3-\i*0.01);
+            }
+            
+            % Flatten
+            \draw[->, thick] (8.2,1) -- (8.6,1);
+            \draw[fill=red!30] (8.8,0.5) rectangle (9,1.5);
+            \node at (8.9,2.5) {\tiny Flatten};
+            
+            % FC layers
+            \draw[->, thick] (9.2,1) -- (9.6,1);
+            \foreach \i in {0,...,4} {
+                \node[circle, draw, fill=yellow!30] at (10,1.5-\i*0.3) {};
+            }
+            \node at (10,2.5) {\tiny FC};
+            
+            % Output
+            \draw[->, thick] (10.5,1) -- (10.9,1);
+            \foreach \i in {0,...,2} {
+                \node[circle, draw, fill=purple!30] at (11.5,1.2-\i*0.3) {};
+            }
+            \node at (11.5,2.5) {\small Saída};
+            \node at (11.5,-0.6) {\small Classes};
+        \end{tikzpicture}
+    \end{center}
+    
+    \vspace{0.3cm}
+    \begin{center}
+        \highlight{Padrão}: CONV $\to$ ReLU $\to$ POOL $\to$ CONV $\to$ ReLU $\to$ POOL $\to$ FC $\to$ Softmax
+    \end{center}
+\end{frame}
+
+\begin{frame}[c]{Comparação: CNN vs MLP para Imagens}
+    \begin{center}
+        \begin{tabular}{|l|c|c|}
+            \hline
+            \textbf{Aspecto} & \textbf{MLP} & \textbf{CNN} \\
+            \hline
+            \hline
+            Preserva estrutura espacial & X & \checkmark \\
+            \hline
+            Número de parâmetros & \highlight{Muito alto} & \highlight{Reduzido} \\
+            \hline
+            Compartilhamento de pesos & X & \checkmark \\
+            \hline
+            Invariância à translação & X & \checkmark \\
+            \hline
+            Detecta padrões locais & Difícil & Natural \\
+            \hline
+            Hierarquia de características & X & \checkmark \\
+            \hline
+            Eficiência computacional & Baixa & Alta \\
+            \hline
+            Generalização em imagens & Limitada & Excelente \\
+            \hline
+        \end{tabular}
+    \end{center}
+    
+    \vspace{0.5cm}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \centering
+            \textbf{MLP: Força Bruta}
+            \begin{itemize}
+                \item Conecta tudo com tudo
+                \item Ignora localidade
+                \item Precisa de muitos dados
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \centering
+            \textbf{CNN: Inteligência Estrutural}
+            \begin{itemize}
+                \item Explora estrutura da imagem
+                \item Aprende filtros úteis
+                \item Generaliza melhor
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Exemplo Prático: Reconhecimento de Dígitos}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Dataset MNIST:}
+            \begin{itemize}
+                \item 60.000 imagens de treino
+                \item 10.000 imagens de teste
+                \item Imagens 28$\times$28 pixels
+                \item 10 classes (dígitos 0-9)
+            \end{itemize}
+            
+            \vspace{0.5cm}
+            \textbf{Arquitetura Simples:}
+            \begin{itemize}
+                \item \highlight{Conv1}: 32 filtros 3$\times$3
+                \item \highlight{MaxPool}: 2$\times$2
+                \item \highlight{Conv2}: 64 filtros 3$\times$3
+                \item \highlight{MaxPool}: 2$\times$2
+                \item \highlight{FC}: 128 neurônios
+                \item \highlight{Saída}: 10 classes
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Visualização dos Filtros Aprendidos:}
+            \begin{tikzpicture}[scale=0.7]
+                % First layer filters (edge detectors)
+                \node at (0,3.5) {\small \textbf{Camada 1: Detectores de Bordas}};
+                \foreach \i in {0,...,3} {
+                    \draw[fill=gray!20] (\i*0.8,2.5) rectangle (\i*0.8+0.6,3.1);
+                }
+                % Simulate edge patterns
+                \draw[ultra thick] (0.3,2.8) -- (0.3,2.8);
+                \draw[ultra thick] (1.1,2.6) -- (1.1,3);
+                \draw[ultra thick] (1.7,2.8) -- (2.1,2.8);
+                \draw[ultra thick] (2.5,2.6) -- (2.8,2.9);
+                
+                % Second layer filters (shape detectors)
+                \node at (0,1.5) {\small \textbf{Camada 2: Detectores de Formas}};
+                \foreach \i in {0,...,3} {
+                    \draw[fill=gray!20] (\i*0.8,0.5) rectangle (\i*0.8+0.6,1.1);
+                }
+                % Simulate shape patterns
+                \draw[thick] (0.3,0.8) circle (0.15);
+                \draw[thick] (1,0.8) -- (1.3,0.8) -- (1.15,0.6) -- cycle;
+                \draw[thick] (1.8,0.6) rectangle (2.1,0.9);
+                \draw[thick] (2.5,0.8) .. controls (2.6,0.9) and (2.7,0.7) .. (2.8,0.8);
+                
+                \node at (0,-0.5) {\small \textbf{Resultado: 99\% de Acurácia!}};
+            \end{tikzpicture}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c, fragile]{Implementação em Keras/TensorFlow}
+    \begin{code}[CNN Simples para MNIST]{python}
+from tensorflow.keras import Sequential
+from tensorflow.keras.layers import Conv2D, MaxPooling2D
+from tensorflow.keras.layers import Flatten, Dense, Dropout
+
+# Construindo o modelo CNN
+model = Sequential([
+    # Primeira camada convolucional
+    Conv2D(32, (3,3), activation='relu', 
+           input_shape=(28, 28, 1)),
+    MaxPooling2D((2,2)),
+
+    # Segunda camada convolucional
+    Conv2D(64, (3,3), activation='relu'),
+    MaxPooling2D((2,2)),
+        \end{code}
+\end{frame}
+
+
+\begin{frame}[c, fragile]{Implementação em Keras/TensorFlow}
+    \begin{code}[CNN Simples para MNIST]{python}
+
+    # Camadas densas
+    Flatten(),
+    Dense(128, activation='relu'),
+    Dropout(0.5),
+    Dense(10, activation='softmax')
+])
+
+model.compile(optimizer='adam',
+              loss='categorical_crossentropy',
+              metrics=['accuracy'])
+    \end{code}
+\end{frame}
+
+\begin{frame}[c]{Aplicações Modernas das CNNs}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Visão Computacional:}
+            \begin{itemize}
+                \item \highlight{Classificação}: ImageNet, CIFAR
+                \item \highlight{Detecção}: YOLO, R-CNN
+                \item \highlight{Segmentação}: U-Net, Mask R-CNN
+                \item \highlight{Reconhecimento facial}: FaceNet
+            \end{itemize}
+            
+            \vspace{0.3cm}
+            \textbf{Medicina:}
+            \begin{itemize}
+                \item Diagnóstico por imagem
+                \item Detecção de tumores
+                \item Análise de retina
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Outras Aplicações:}
+            \begin{itemize}
+                \item \highlight{Carros autônomos}: detecção de objetos
+                \item \highlight{Arte}: transferência de estilo
+                \item \highlight{Agricultura}: análise de culturas
+                \item \highlight{Segurança}: vigilância inteligente
+            \end{itemize}
+            
+            \vspace{0.3cm}
+            \textbf{Arquiteturas Famosas:}
+            \begin{itemize}
+                \item LeNet-5 (1998)
+                \item AlexNet (2012)
+                \item VGG (2014)
+                \item ResNet (2015)
+                \item EfficientNet (2019)
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Resumo: CNNs vs MLPs}
+    \begin{center}
+        \begin{tikzpicture}[scale=0.9]
+            % MLP side
+            \node[rectangle, draw, fill=blue!20, minimum width=3cm, minimum height=1cm] at (-4,3.25) {\textbf{MLP}};
+            \node[text width=5cm] at (-3,1.5) {
+                • Conexão total\\
+                • Muitos parâmetros\\
+                • Sem estrutura espacial\\
+                • Bom para dados tabulares
+            };
+            
+            % CNN side
+            \node[rectangle, draw, fill=green!20, minimum width=3cm, minimum height=1cm] at (3,3.25) {\textbf{CNN}};
+            \node[text width=5cm] at (4,1.5) {
+                • Conexão local\\
+                • Compartilha pesos\\
+                • Preserva topologia\\
+                • Ideal para imagens
+            };
+            
+            % Comparison arrow
+            \draw[<->, ultra thick, orange] (-1,2) -- (1,2);
+            \node[above] at (0,2) {\highlight{Escolha}};
+            
+            % Bottom message
+            \node[text width=8cm, align=center] at (0,-1.25) {
+                \textbf{Lição Principal:}\\
+                CNNs são MLPs especializadas que exploram a estrutura espacial dos dados visuais através de\\
+                \highlight{convoluções} e \highlight{pooling} para aprender hierarquias de características
+            };
+        \end{tikzpicture}
+    \end{center}
+\end{frame}
+
+
+\begin{frame}[c]{Explorando as CNNs}
+    \begin{figure}
+        \centering
+        \includegraphics[height=.75\textheight]{image.png}
+        \caption*{Recomendação: assistir o vídeo do \highlight{3Blue1Brown} (legendas em português).\\ Link: \href{https://www.youtube.com/watch?v=KuXjwB4LzSA}{https://www.youtube.com/watch?v=KuXjwB4LzSA}}
+    \end{figure}
+\end{frame}
+
+\begin{frame}[c, noframenumbering, plain]
+    \frametitle{~}
+    \vfill
+    \begin{center}
+        {\Huge Obrigado!}\vspace{1.5em}\\
+        {\Large \highlight{Dúvidas?}}\\
+    \end{center}
+    \vfill
+    \begin{center}
+        {\small Próximo: Arquiteturas de CNNs}
+    \end{center}
+\end{frame}
+
+
+\end{document}

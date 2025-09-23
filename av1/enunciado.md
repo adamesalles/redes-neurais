@@ -20,7 +20,7 @@ Consolidar os tópicos vistos até o momento - revisão de ML/Gradient Descent, 
 ---
 
 ## 2) Entregáveis
-1. **Relatório curto (máx. 4 páginas)** em PDF (figuras numeradas, legendas claras, refêrencias). Sugestão: escreva em Markdown/LaTeX e exporte para PDF, o template do [NeurIPS](https://media.neurips.cc/Conferences/NeurIPS2025/Styles.zip) é um bom padrão.
+1. **Relatório curto (máx. 4-8 páginas)** em PDF (figuras numeradas, legendas claras, refêrencias). Sugestão: escreva em Markdown/LaTeX e exporte para PDF, o template do [NeurIPS](https://media.neurips.cc/Conferences/NeurIPS2025/Styles.zip) é um bom padrão.
 2. **Repositório** (zip ou link) com:
    - `notebooks/` (ou `src/`) contendo o código.
    - `README.md` com instruções de execução **reprodutíveis**.
@@ -132,7 +132,7 @@ PS: Você pode usar PyTorch ou JaX.
 ---
 
 ## 9) Cronograma
-- **Inscrição no tema**: até **19/09/20254**.
+- **Inscrição no tema**: até **19/09/2025**.
 - **Checkpoint**: **24/09/2025** — depois da aula conversaremos sobre o trabalho
 - **Entrega (PDF + código)**: **01/10/2025** (15h00).
 - **Apresentações**: **01/10/2025** (15h00) (ordem sorteada).
@@ -174,7 +174,7 @@ streamlit run src/app.py
 ---
 
 ## 11) Entrega
-Submeta no Classroom: **PDF** (até 4 páginas) + **zip** do repositório (e link) até **01/10/2025 15:00**. Testaremos o app durante a sua apresentação.
+Submeta no Classroom: **PDF** (até 4-8 páginas) + **zip** do repositório (e link) até **01/10/2025 15:00**. Testaremos o app durante a sua apresentação.
 
 > Dúvidas ou adaptações (acessibilidade, recursos): fale comigo até **28/09/2025**.
 

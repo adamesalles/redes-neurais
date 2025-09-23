@@ -22,6 +22,7 @@ Esse curso faz parte do Modulo IV do NES [Novo Ensino Suplementar](https://www.n
 | 4 | 03/09/25 | Treinamento de Redes Neurais | [Slides](semana04/slides/) \| [Exercícios](semana04/exercicios/) \| [Notas](semana04/notas/) |
 | 5 | 10/09/25 | Regularização e Dropout | [Slides](semana05/slides/) \| [Exercícios](semana05/exercicios/) \| [Notas](semana05/notas/) |
 | AV1 | 17/09/25 | Enunciado da Avaliação 1 | [Documento](av1/enunciado.pdf) |
+| 6 | 24/09/25 | Intro. às CNNs | [Slides](semana06/slides/) \| [Exercícios](semana06/exercicios/) \| [Notas](semana06/notas/) |
 
 ## 🎯 Objetivos do Curso
 
