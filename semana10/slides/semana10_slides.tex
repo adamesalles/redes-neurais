@@ -1,0 +1,537 @@
+\documentclass[xcolor=dvipsnames,t,aspectratio=169]{beamer}
+
+\usecolortheme{rose}
+\usecolortheme{dolphin}
+\usetheme{Boadilla}
+
+\input{../../templates/slides/imports}
+\input{../../templates/slides/settings}
+\input{../../templates/slides/commands}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, shapes, positioning, calc}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{multicol}
+
+% Configuração para código Python
+\lstset{
+    language=Python,
+    basicstyle=\tiny\ttfamily,
+    keywordstyle=\color{blue},
+    commentstyle=\color{green!60!black},
+    stringstyle=\color{orange},
+    showstringspaces=false,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray}
+}
+
+\titlegraphic{
+    \includegraphics[scale = 0.5]{../../templates/slides/logo}
+}
+
+\logo{
+\begin{tikzpicture}[overlay,remember picture]
+\node[below left = 0.2cm] at (current page.30) {
+    \includegraphics[width=0.1\textwidth]{../../templates/slides/logo}};
+\end{tikzpicture}
+}
+
+\newcommand{\highlight}[1]{{\color{nes_dark_orange} #1}}
+
+\title{Texto e Word Vectors} 
+
+\author{
+    Eduardo Adame
+}
+
+\date{{\color{nes_dark_purple}  \textbf{Redes Neurais}\\[0.5em] 29 de outubro de 2025 }}
+
+
+\begin{document}
+
+\frame[plain]{\titlepage}
+\setcounter{framenumber}{0}
+
+\begin{frame}[c]
+\frametitle{Motivação}
+\begin{itemize}
+\item Demonstramos como usar Redes Neurais com dados numéricos estruturados
+\item Imagens podem ser redimensionadas para um tamanho específico
+\item Valores de imagem são números (escala de cinza, RGB)
+\item Mas como trabalhamos com texto?
+\item \textbf{Problema 1:} Como lidar com sequências de texto (sequências de palavras com comprimento variável)?
+\item \textbf{Problema 2:} Como converter palavras em algo numérico?
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Problema: Sequências de Comprimento Variável}
+\begin{itemize}
+\item Com imagens, forçamos dimensões de entrada específicas
+\item Não é óbvio como fazer isso com texto
+\item Usaremos uma nova estrutura de rede chamada \textit{"Rede Neural Recorrente" (RNN)} que será discutida na próxima aula
+\item Hoje focamos em: \textbf{como representar palavras numericamente}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Tokenização}
+\begin{itemize}
+\item Necessário converter palavra em algo numérico
+\item \textbf{Primeira abordagem:} Tokenização
+\item Tratar como variável categórica com enorme número de categorias (codificação one-hot)
+\item Lidar com detalhes de maiúsculas, pontuação, etc.
+\end{itemize}
+
+\vspace{0.5cm}
+\begin{center}
+\texttt{"O gato de botas."}
+
+$\downarrow$
+
+\texttt{['o', 'gato', 'de', 'botas', '.', '<EOS>']}
+\end{center}
+\end{frame}
+
+\begin{frame}[c, fragile]
+\frametitle{Tokenização - Construindo o Vocabulário}
+\begin{columns}
+\begin{column}{0.5\textwidth}
+\begin{itemize}
+\item Usar tokens para construir vocabulário
+\item Vocabulário é um mapeamento um-para-um de índice para token
+\item Geralmente representado por lista e dicionário
+\end{itemize}
+\end{column}
+
+\begin{column}{0.5\textwidth}
+\textbf{índice $\rightarrow$ palavra}
+\begin{code}[]{python}
+['<EOS>',
+ 'o',
+ 'gato',
+ 'de',
+ 'botas',
+ '.']
+\end{code}
+
+\textbf{palavra $\rightarrow$ índice}
+\begin{code}[]{python}
+{'<EOS>': 0,
+ 'o': 1,
+ 'gato': 2,
+ 'de': 3,
+ 'botas': 4,
+ '.': 5}
+\end{code}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Problemas com Tokenização}
+\begin{itemize}
+\item Tokenização perde muita informação sobre palavras:
+\begin{itemize}
+\item Classe gramatical (substantivo, verbo, etc.)
+\item \textbf{Sinonímia} (palavras distintas com significado igual ou similar)
+\item \textbf{Polissemia} (palavra única com múltiplos significados)
+\item Contexto geral em que a palavra provavelmente aparece\\
+(ex.: "desemprego" e "inflação" são ambas sobre economia)
+\end{itemize}
+\item Aumentar tamanho do vocabulário é difícil (requereria re-treinar o modelo)
+\item Comprimento do vetor é enorme $\rightarrow$ grande número de pesos
+\item Ainda assim, informação no vetor é muito \textbf{esparsa}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Vetores de Palavras (Word Embeddings)}
+\begin{itemize}
+\item \textbf{Objetivo:} representar palavra por vetor $m$-dimensional (para $m$ de tamanho médio, digamos, $m=300$)
+\item Ter palavras "similares" representadas por vetores "próximos" neste espaço $m$-dimensional
+\item Palavras em domínio particular (economia, ciência, esportes) poderiam estar mais próximas entre si
+\item Poderia ajudar com sinonímia
+\begin{itemize}
+\item ex.: "grande" e "enorme" têm vetores próximos
+\end{itemize}
+\item Poderia ajudar com polissemia
+\begin{itemize}
+\item "manga" (fruta) e "laranja" próximas em algumas dimensões
+\item "manga" (roupa) e "bolso" próximas em outras dimensões
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Vetores de Palavras - Vantagens}
+\begin{itemize}
+\item Vetores seriam mais curtos e densos em informação, ao invés de muito longos e esparsos
+\item Requeririam menos pesos e parâmetros
+\item \textbf{Felizmente:} existem mapeamentos pré-treinados que podem ser baixados e utilizados
+\item Foram treinados em grandes corpora por muito tempo
+\item Vamos entender como foram desenvolvidos e treinados
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{O que Torna Duas Palavras Similares?}
+\begin{itemize}
+\item \textbf{Ideia:} palavras similares ocorrem em contextos similares
+\item Para uma palavra dada, olhar palavras em uma "janela" ao redor dela
+\item Considerar tentar prever uma palavra dado o contexto
+\item Este é exatamente o modelo \textbf{CBOW} (Continuous Bag of Words)
+\end{itemize}
+
+\vspace{0.3cm}
+\begin{center}
+\textit{"Todos são iguais perante a \textcolor{red}{lei}, sem distinção de qualquer natureza"}
+
+$\downarrow$
+
+(['iguais', 'perante', 'a', 'sem', 'distinção', 'de'], '\textcolor{red}{lei}')
+
+\vspace{0.2cm}
+\small{contexto \hspace{3cm} palavra-alvo}
+\end{center}
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Modelo CBOW}
+\textbf{Treinar rede neural em grande corpus de dados.}
+
+
+\begin{itemize}
+\item Palavras de contexto (one-hot encoded)
+\item Camada oculta única (dimensão m)
+\item Palavra alvo (one-hot encoded)
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Modelo CBOW - Extraindo Embeddings}
+\textbf{Uma vez que a rede é treinada, os pesos $\rightarrow$ vetores de palavras.}
+
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=.75\textwidth]{CBOW.png}
+\end{figure}
+
+
+\end{frame}
+\begin{frame}[c]
+\frametitle{Modelo CBOW - Extraindo Embeddings}
+\begin{itemize}
+\item A matriz de pesos entre entrada e camada oculta representa os word embeddings
+\item Cada linha corresponde ao vetor de uma palavra
+\item Dimensão: vocabulário $\times m$
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Modelo Skip-gram}
+\textbf{Mesma ideia, exceto que predizemos o contexto a partir do alvo.}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=.75\textwidth]{skipgram.png}
+\end{figure}
+
+\end{frame}
+\begin{frame}[c]
+\frametitle{Modelo CBOW - Extraindo Embeddings}
+
+\begin{itemize}
+\item Palavra alvo (one-hot encoded)
+\item Camada oculta de Rede Neural
+\item Palavras de contexto (one-hot encoded)
+\item Geralmente funciona melhor que CBOW
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Word2Vec (2013)}
+\begin{itemize}
+\item \textit{Distributed Representations of Words and Phrases and Their Compositionality}, Mikolov et al.
+\item Usa modelo Skip-gram para treinar em grande corpus
+\item Muitos detalhes para fazê-lo funcionar melhor:
+\begin{itemize}
+\item Agregação de frases multi-palavras (ex.: "São Paulo")
+\item Subamostragem (sobreamostrar palavras menos comuns)
+\item Amostragem negativa (dar exemplos de palavras erradas à rede)
+\end{itemize}
+\item Implementações disponíveis em \texttt{gensim}, \texttt{spaCy}
+\item Modelos pré-treinados disponíveis online
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Propriedades Interessantes - Analogias}
+\begin{itemize}
+\item Word2Vec captura relações semânticas e sintáticas
+\item Exemplo clássico de analogia:
+\end{itemize}
+
+\begin{center}
+\Large
+\textbf{rei} $-$ homem $+$ mulher $\approx$ \textbf{rainha}
+
+\vspace{0.5cm}
+
+\textbf{Paris} $-$ França $+$ Brasil $\approx$ \textbf{Brasília}
+\end{center}
+
+\begin{itemize}
+\item Operações vetoriais capturam relações conceituais
+\item Útil para tarefas de reasoning e NLP
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{GloVe (2014)}
+\begin{itemize}
+\item \textbf{Global Vectors for Word Representation} (GloVe)
+\item Usa matriz de co-ocorrência com palavras vizinhas para determinar similaridade
+\end{itemize}
+
+\vspace{0.3cm}
+$$J = \frac{1}{2}\sum_{i,j=1}^{W} f(P_{ij})(u_i^T v_j - \log(P_{ij}))^2$$
+
+\vspace{0.3cm}
+\begin{itemize}
+\item $f$ $\rightarrow$ frequência de palavra, com limite máximo
+\item $P_{ij}$ $\rightarrow$ probabilidade das palavras i e j ocorrerem juntas
+\item Abordagem mais estatística que Word2Vec
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{GloVe - Disponibilidade}
+\begin{itemize}
+\item GloVe é publicamente disponível
+\item Desenvolvido em Stanford: \url{https://nlp.stanford.edu/projects/glove/}
+\item Treinado em enormes corpora:
+\begin{itemize}
+\item Wikipedia 2014 + Gigaword 5 (6B tokens, 400K vocab)
+\item Common Crawl (42B tokens, 1.9M vocab)
+\item Common Crawl (840B tokens, 2.2M vocab)
+\end{itemize}
+\item Diferentes dimensionalidades disponíveis (50, 100, 200, 300)
+\item Amplamente usado em pesquisa e indústria
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Comparação: Word2Vec vs GloVe}
+\begin{table}
+\small
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Aspecto} & \textbf{Word2Vec} & \textbf{GloVe} \\
+\hline
+Abordagem & Preditiva (NN) & Baseada em contagem \\
+\hline
+Contexto & Local (janela) & Global (corpus todo) \\
+\hline
+Treinamento & Mais rápido & Mais lento \\
+\hline
+Memória & Menor & Maior (matriz) \\
+\hline
+Performance & Similar & Similar \\
+\hline
+\end{tabular}
+\end{table}
+
+\vspace{0.3cm}
+\begin{itemize}
+\item Na prática, performance similar na maioria das tarefas
+\item Escolha depende de recursos computacionais e corpus
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Limitações dos Word Embeddings Estáticos}
+\begin{itemize}
+\item \textbf{Problema principal:} uma palavra = um vetor único
+\item Não capturam contexto dinâmico:
+\begin{itemize}
+\item "banco" em "banco de dados" vs "banco do parque"
+\item Polissemia não é totalmente resolvida
+\end{itemize}
+\item Não lidam bem com:
+\begin{itemize}
+\item Palavras fora do vocabulário (OOV)
+\item Morfologia e palavras compostas
+\item Mudanças de significado ao longo do tempo
+\end{itemize}
+\item Solução: \textbf{Embeddings Contextuais} (próximo tópico)
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Evolução: Embeddings Contextuais (2018-2025)}
+\begin{itemize}
+\item \textbf{ELMo} (2018): Embeddings de modelos de linguagem bidirecionais
+\item \textbf{BERT} (2018): Transformers bidirecionais
+\item \textbf{GPT} (2018-2023): Modelos autoregressivos
+\item \textbf{2025:} Modelos ainda mais sofisticados
+\begin{itemize}
+\item Embeddings adaptam-se ao contexto da frase
+\item "banco" terá representações diferentes dependendo do uso
+\item Base para LLMs modernos (ChatGPT, Claude, etc.)
+\end{itemize}
+\item \textbf{Diferença chave:} representação depende do contexto completo
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Aplicações Práticas de Word Embeddings}
+\begin{enumerate}
+\item \textbf{Análise de Sentimento}
+\begin{itemize}
+\item Classificar opiniões como positivas/negativas
+\end{itemize}
+\item \textbf{Sistemas de Recomendação}
+\begin{itemize}
+\item Encontrar produtos/conteúdos similares
+\end{itemize}
+\item \textbf{Tradução Automática}
+\begin{itemize}
+\item Representar palavras em diferentes idiomas
+\end{itemize}
+\item \textbf{Busca Semântica}
+\begin{itemize}
+\item Encontrar documentos por significado, não apenas palavras-chave
+\end{itemize}
+\item \textbf{Chatbots e Assistentes Virtuais}
+\begin{itemize}
+\item Entender intenção do usuário
+\end{itemize}
+\end{enumerate}
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Avaliação de Word Embeddings}
+\begin{itemize}
+\item \textbf{Avaliação Intrínseca:}
+\begin{itemize}
+\item Testes de analogia (rei - homem + mulher = ?)
+\item Tarefas de similaridade de palavras
+\item Correlação com julgamentos humanos
+\end{itemize}
+\item \textbf{Avaliação Extrínseca:}
+\begin{itemize}
+\item Performance em tarefas downstream
+\item Classificação de texto
+\item Named Entity Recognition (NER)
+\item Part-of-Speech (POS) tagging
+\end{itemize}
+\item Benchmarks comuns: WordSim-353, SimLex-999, Google Analogy
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c, fragile]
+\frametitle{Implementação Prática - Python}
+\begin{itemize}
+\item \textbf{Bibliotecas principais:}
+\begin{itemize}
+\item \texttt{gensim}: Word2Vec, FastText
+\item \texttt{spaCy}: Embeddings pré-treinados integrados
+\item \texttt{transformers} (HuggingFace): BERT, GPT
+\item \texttt{tensorflow/keras}: Embedding layers
+\end{itemize}
+\item \textbf{Carregar embeddings pré-treinados:}
+\end{itemize}
+
+\begin{code}[]{python}
+from gensim.models import KeyedVectors
+# Carregar GloVe
+model = KeyedVectors.load_word2vec_format(
+    'glove.6B.300d.txt', binary=False)
+# Similaridade
+model.similarity('gato', 'cachorro')
+\end{code}
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Demonstração Interativa}
+\begin{itemize}
+\item \textbf{TensorFlow Embedding Projector}
+\begin{itemize}
+\item \url{https://projector.tensorflow.org}
+\item Visualização 3D interativa de embeddings
+\item Busca por vizinhos mais próximos
+\item Visualização de relações analógicas
+\end{itemize}
+\item \textbf{Experimente:}
+\begin{itemize}
+\item Busque "king" e veja palavras similares
+\item Use PCA ou t-SNE para redução dimensional
+\item Explore diferentes datasets (Word2Vec, GloVe)
+\end{itemize}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Recursos Adicionais}
+\begin{itemize}
+\item \textbf{Papers Fundamentais:}
+\begin{itemize}
+\item Mikolov et al. (2013) - Word2Vec
+\item Pennington et al. (2014) - GloVe
+\item Peters et al. (2018) - ELMo
+\end{itemize}
+\item \textbf{Tutoriais e Cursos:}
+\begin{itemize}
+\item Stanford CS224N: NLP with Deep Learning
+\item Fast.ai: Practical Deep Learning for Coders
+\end{itemize}
+\item \textbf{Datasets e Modelos:}
+\begin{itemize}
+\item \url{https://nlp.stanford.edu/projects/glove/}
+\item \url{https://code.google.com/archive/p/word2vec/}
+\item HuggingFace Model Hub
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Próxima Aula}
+\begin{itemize}
+\item \textbf{Redes Neurais Recorrentes (RNN)}
+\begin{itemize}
+\item Como processar sequências de comprimento variável
+\item LSTM e GRU
+\item Aplicações em processamento de texto
+\end{itemize}
+\item \textbf{Preparação:}
+\begin{itemize}
+\item Revisar conceitos de word embeddings
+\item Familiarizar-se com notação de sequências
+\item Instalar bibliotecas necessárias
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c, noframenumbering, plain]
+    \frametitle{~}
+    \vfill
+    \begin{center}
+        {\Huge Obrigado!}\vspace{1.5em}\\
+        {\Large \highlight{Dúvidas?}}\\
+    \end{center}
+    \vfill
+    % \begin{center}
+    %     {\small Próxima aula: 22/10/2025}\\
+    %     {\small Tema: Arquiteturas Modernas de CNNs}
+    % \end{center}
+\end{frame}
+
+\end{document}
