@@ -27,6 +27,7 @@ Esse curso faz parte do Modulo IV do NES [Novo Ensino Suplementar](https://www.n
 | 7 | 15/10/25 | ConvNets e Transfer Learning | [Slides](semana07/slides/) \| [Exercícios](semana07/exercicios/) |
 | 8 | 22/10/25 | Transfer Learning | [Slides](semana08/slides/) \| [Exercícios](semana08/exercicios/) |
 | 9 | 29/10/25 | Técnicas Avançadas (Data Aug.) | [Slides](semana09/slides/) \| [Exercícios](semana09/exercicios/) |
+| 10 | 5/11/25 | Texto / Word Vectors | [Slides](semana10/slides/) \| [Exercícios](semana10/exercicios/) |
 
 ## 🎯 Objetivos do Curso
 
