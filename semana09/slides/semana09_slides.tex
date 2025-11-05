@@ -1,0 +1,1364 @@
+\documentclass[xcolor=dvipsnames,t,aspectratio=169]{beamer}
+
+\usecolortheme{rose}
+\usecolortheme{dolphin}
+\usetheme{Boadilla}
+
+\input{../../templates/slides/imports}
+\input{../../templates/slides/settings}
+\input{../../templates/slides/commands}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, shapes, positioning, calc}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{multicol}
+
+% Configuração para código Python
+\lstset{
+    language=Python,
+    basicstyle=\tiny\ttfamily,
+    keywordstyle=\color{blue},
+    commentstyle=\color{green!60!black},
+    stringstyle=\color{orange},
+    showstringspaces=false,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray}
+}
+
+\titlegraphic{
+    \includegraphics[scale = 0.5]{../../templates/slides/logo}
+}
+
+\logo{
+\begin{tikzpicture}[overlay,remember picture]
+\node[below left = 0.2cm] at (current page.30) {
+    \includegraphics[width=0.1\textwidth]{../../templates/slides/logo}};
+\end{tikzpicture}
+}
+
+\newcommand{\highlight}[1]{{\color{nes_dark_orange} #1}}
+
+\title{Técnicas Avançadas de Redes Neurais Convolucionais} 
+
+\author{
+    Eduardo Adame
+}
+
+\date{{\color{nes_dark_purple}  \textbf{Redes Neurais}\\[0.5em] 29 de outubro de 2025 }}
+
+
+\begin{document}
+
+\frame[plain]{\titlepage}
+\setcounter{framenumber}{0}
+
+% Slides apenas com os frames - adicionar ao documento principal
+
+\begin{frame}[c]
+\frametitle{Introdução}
+
+\textbf{Objetivos da Aula}
+\begin{itemize}
+    \item \textbf{Data Augmentation}: Técnicas para expandir datasets artificialmente
+    \item \textbf{Pipelines de Dados}: Como usar geradores de dados eficientemente
+    \item \textbf{API Funcional do Keras}: Arquiteturas complexas e flexíveis
+    \item \textbf{Transfer Learning}: Reutilizar conhecimento de modelos pré-treinados
+    \item \textbf{Técnicas Avançadas}: Callbacks, regularização e otimização
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{Por que estas técnicas são importantes?}
+\begin{itemize}
+    \item \textbf{Dados limitados}: Nem sempre temos milhões de imagens rotuladas
+    \item \textbf{Eficiência}: Treinar do zero é caro e demorado
+    \item \textbf{Generalização}: Evitar overfitting e melhorar performance
+    \item \textbf{Produção}: Técnicas essenciais para sistemas reais
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Data Augmentation: O Problema}
+
+\textbf{Desafio Principal: Escassez de Dados}
+
+\begin{itemize}
+    \item \textbf{Obter dados rotulados é:}
+        \begin{itemize}
+            \item Caro (tempo e recursos humanos)
+            \item Demorado (processo manual de rotulação)
+            \item Difícil (alguns domínios têm poucos exemplos)
+        \end{itemize}
+    
+    \item \textbf{Consequências da falta de dados:}
+        \begin{itemize}
+            \item \highlight{Overfitting}: Modelo memoriza treino, não generaliza
+            \item \highlight{Baixa robustez}: Sensível a pequenas variações
+            \item \highlight{Viés}: Não representa diversidade do mundo real
+        \end{itemize}
+\end{itemize}
+
+\vspace{0.3cm}
+
+\begin{attention}[Pergunta Fundamental]
+Como fazer mais com menos dados?
+\end{attention}
+
+\vspace{0.3cm}
+
+\textbf{Solução}: Data Augmentation - criar variações sintéticas dos dados existentes
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Data Augmentation: O Conceito}
+
+\textbf{Ideia Central}
+
+\begin{itemize}
+    \item Se uma imagem de cadeira rotacionada ainda é uma cadeira...
+    \item Se uma cadeira espelhada horizontalmente ainda é uma cadeira...
+    \item Se uma cadeira com zoom ainda é uma cadeira...
+    \item \textbf{Então podemos criar múltiplos exemplos de treino a partir de uma única imagem!}
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{Benefícios}
+\begin{itemize}
+    \item \textbf{Aumenta o dataset efetivo}: De $N$ para $N \times k$ amostras
+    \item \textbf{Regularização implícita}: Rede aprende invariâncias úteis
+    \item \textbf{Melhor generalização}: Exposição a variações realistas
+    \item \textbf{Reduz overfitting}: Menos provável memorizar os dados
+\end{itemize}
+
+
+\begin{attention}[Cuidado!]
+Nem todas as transformações preservam o significado semântico!
+\end{attention}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Data Augmentation: O Conceito}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=.85\textwidth]{gato.png}
+\end{figure}
+
+\end{frame}
+
+
+\begin{frame}[c]
+\frametitle{Data Augmentation: Cuidados Necessários}
+
+\textbf{Exemplo: Placas de Trânsito}
+
+\begin{columns}
+\begin{column}{0.5\textwidth}
+\textbf{$\checkmark$ Transformações Válidas}
+\begin{itemize}
+    \item Pequenas rotações ($\pm 15°$)
+    \item Mudanças de brilho
+    \item Pequenos crops
+    \item Blur leve
+    \item Ruído moderado
+\end{itemize}
+\end{column}
+
+\begin{column}{0.5\textwidth}
+\textbf{$\cross$ Transformações Inválidas}
+\begin{itemize}
+    \item \highlight{Flip horizontal/vertical}
+    \item Rotações grandes
+    \item Distorções severas
+    \item Inversão de cores
+    \item Crops agressivos
+\end{itemize}
+\end{column}
+\end{columns}
+
+\vspace{0.5cm}
+
+\textbf{Por que?} Placa de "Proibido virar à esquerda" $\neq$ "Proibido virar à direita"
+
+\vspace{0.3cm}
+
+\textbf{Princípio Geral}
+\begin{itemize}
+    \item Aplicar apenas transformações que \textbf{preservam a classe}
+    \item Considerar o \textbf{contexto da aplicação}
+    \item Testar se as augmentations \textbf{fazem sentido no domínio}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Técnicas Comuns de Data Augmentation}
+
+\textbf{1. Transformações Geométricas}
+\begin{itemize}
+    \item \textbf{Rotação}: Girar a imagem por um ângulo aleatório
+    \item \textbf{Translação}: Deslocar horizontal/verticalmente
+    \item \textbf{Escala/Zoom}: Ampliar ou reduzir partes da imagem
+    \item \textbf{Flip}: Espelhamento horizontal ou vertical
+    \item \textbf{Cisalhamento (shear)}: Deformação angular
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{2. Transformações de Cor}
+\begin{itemize}
+    \item \textbf{Brilho}: Ajustar iluminação global
+    \item \textbf{Contraste}: Aumentar/diminuir diferença entre pixels
+    \item \textbf{Saturação}: Intensidade das cores
+    \item \textbf{Hue}: Mudança de tonalidade
+    \item \textbf{Normalização}: Ajuste de canais RGB
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Técnicas Avançadas de Data Augmentation}
+
+\textbf{3. Transformações Baseadas em Recortes}
+\begin{itemize}
+    \item \textbf{Random Crop}: Recortar região aleatória da imagem
+    \item \textbf{Center Crop}: Recortar região central
+    \item \textbf{Cutout (2017)}: Mascarar regiões aleatórias com zeros
+    \item \textbf{Random Erasing}: Similar ao Cutout, com pixels aleatórios
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{4. Transformações Modernas}
+\begin{itemize}
+    \item \textbf{MixUp (2018)}: Combinar duas imagens linearmente
+        \begin{itemize}
+            \item $x' = \lambda x_1 + (1-\lambda) x_2$
+            \item $y' = \lambda y_1 + (1-\lambda) y_2$
+        \end{itemize}
+    \item \textbf{CutMix (2019)}: Recortar e colar patches entre imagens
+    \item \textbf{AutoAugment (2019)}: Busca automática de políticas de augmentation
+    \item \textbf{RandAugment (2020)}: Versão simplificada e mais eficiente
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c,fragile]
+\frametitle{Data Augmentation em Keras 3 (2025)}
+
+\textbf{Atualização Importante: Keras 3}
+\begin{itemize}
+    \item \textbf{Keras 3} (lançado em 2023, estável em 2024-2025)
+    \item API moderna e multi-backend (TensorFlow, JAX, PyTorch)
+    \item \texttt{ImageDataGenerator} está \highlight{deprecated}
+    \item Nova abordagem recomendada: \texttt{keras.layers} preprocessing
+\end{itemize}
+
+
+\begin{code}[Abordagem Moderna com Keras 3]{python}
+import keras
+from keras import layers
+data_augmentation = keras.Sequential([
+    layers.RandomFlip("horizontal"),
+    layers.RandomRotation(0.1),  # ±10% = ±36°
+    layers.RandomZoom(0.1),
+    layers.RandomContrast(0.1),
+    layers.RandomBrightness(0.1),
+])
+\end{code}
+
+\end{frame}
+
+\begin{frame}[c,fragile]
+\frametitle{Pipeline Completo com tf.data}
+
+\begin{code}[Pipeline Moderno de Dados]{python}
+import tensorflow as tf
+train_ds = tf.keras.utils.image_dataset_from_directory(
+    'data/train',
+    image_size=(224, 224),
+    batch_size=32,
+    label_mode='categorical'
+)
+AUTOTUNE = tf.data.AUTOTUNE
+train_ds = (train_ds
+    .map(lambda x, y: (data_augmentation(x, training=True), y),
+         num_parallel_calls=AUTOTUNE)
+    .prefetch(AUTOTUNE)
+)
+model.fit(train_ds, epochs=50, validation_data=val_ds)
+\end{code}
+
+\textbf{Vantagens}: Mais eficiente, integrado ao modelo, funciona em GPU
+
+\end{frame}
+
+\begin{frame}[c,fragile]
+\frametitle{Comparação: Abordagem Legada vs Moderna}
+
+\textbf{Abordagem Antiga (ImageDataGenerator - deprecated)}
+
+\begin{code}[Método Antigo]{python}
+from keras.preprocessing.image import ImageDataGenerator
+
+datagen = ImageDataGenerator(
+    rotation_range=20,
+    width_shift_range=0.2,
+    height_shift_range=0.2,
+    horizontal_flip=True
+)
+
+# Treinar com fit_generator (também deprecated)
+model.fit_generator(
+    datagen.flow(x_train, y_train, batch_size=32),
+    epochs=50
+)
+\end{code}
+
+\end{frame}
+\begin{frame}[c,fragile]
+\frametitle{Comparação: Abordagem Legada vs Moderna}
+\textbf{Problemas}:
+\begin{itemize}
+    \item Executa em CPU (lento)
+    \item API inconsistente
+    \item Difícil integrar com tf.data
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c,fragile]
+\frametitle{Augmentation como Camada do Modelo}
+
+\textbf{Melhor Prática 2025: Augmentation dentro do Modelo}
+
+\begin{code}[Integração no Modelo]{python}
+# Definir augmentation
+augmentation = keras.Sequential([
+    layers.RandomFlip("horizontal"),
+    layers.RandomRotation(0.2),
+    layers.RandomZoom(0.2),
+], name="data_augmentation")
+# Criar modelo com augmentation integrado
+inputs = keras.Input(shape=(224, 224, 3))
+x = augmentation(inputs)  # Só aplicado durante treino
+x = layers.Rescaling(1./255)(x)
+# Resto do modelo
+x = layers.Conv2D(32, 3, activation='relu')(x)
+# ... mais camadas ...
+outputs = layers.Dense(10, activation='softmax')(x)
+model = keras.Model(inputs, outputs)
+\end{code}
+
+\textbf{Vantagens}: GPU, reprodutível, exportável, treino vs inferência automático 
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Boas Práticas de Data Augmentation}
+
+\textbf{Diretrizes Gerais}
+
+\begin{itemize}
+    \item \textbf{Comece simples}: Flip + pequenas rotações + zoom
+    \item \textbf{Aumente gradualmente}: Adicione complexidade se necessário
+    \item \textbf{Valide visualmente}: Inspecione exemplos augmentados
+    \item \textbf{Considere o domínio}: Nem tudo faz sentido para todos os problemas
+    \item \textbf{Monitore overfitting}: Se persiste, aumente augmentation
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Augmentation vs Tamanho do Dataset}
+
+\begin{itemize}
+    \item \textbf{Dataset pequeno (<1000)}: Augmentation agressiva é crucial
+    \item \textbf{Dataset médio (1K-100K)}: Augmentation moderada ajuda
+    \item \textbf{Dataset grande (>100K)}: Augmentation leve já suficiente
+    \item \textbf{Dataset enorme (>1M)}: Augmentation menos crítica
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Cuidado}: Augmentation muito agressiva pode prejudicar!
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{API Funcional do Keras: Motivação}
+
+\textbf{Limitações do Modelo Sequential}
+
+\begin{itemize}
+    \item \textbf{Apenas topologias lineares}: Uma camada após a outra
+    \item \textbf{Uma entrada, uma saída}: Não suporta múltiplos inputs/outputs
+    \item \textbf{Sem compartilhamento de camadas}: Cada camada usada uma vez
+    \item \textbf{Sem skip connections}: Impossível fazer ResNet, U-Net, etc.
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{Quando Usar API Funcional?}
+
+\begin{itemize}
+    \item \textbf{Múltiplas entradas}: Ex: imagem + metadados
+    \item \textbf{Múltiplas saídas}: Ex: classificação + regressão simultâneas
+    \item \textbf{Grafos complexos}: ResNet, Inception, U-Net
+    \item \textbf{Compartilhamento de pesos}: Siamese networks
+    \item \textbf{Skip connections}: Qualquer arquitetura moderna
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c,fragile]
+\frametitle{API Funcional: Conceitos Básicos}
+
+\textbf{Filosofia}
+\begin{itemize}
+    \item Camadas são \textbf{chamáveis} (callable) em tensores
+    \item Cada camada retorna um tensor
+    \item Construir o grafo conectando camadas
+    \item Especificar inputs e outputs explicitamente
+\end{itemize}
+
+\vspace{0.3cm}
+
+\begin{code}[Exemplo Simples]{python}
+import keras
+from keras import layers
+# 1. Definir entrada
+inputs = keras.Input(shape=(28, 28, 1))
+# 2. Construir grafo aplicando camadas
+x = layers.Flatten()(inputs)
+x = layers.Dense(128, activation='relu')(x)
+x = layers.Dropout(0.5)(x)
+outputs = layers.Dense(10, activation='softmax')(x)
+# 3. Criar modelo especificando inputs e outputs
+model = keras.Model(inputs=inputs, outputs=outputs)
+\end{code}
+
+\end{frame}
+
+\begin{frame}[c,fragile]
+\frametitle{Exemplo: Múltiplas Saídas}
+
+\textbf{Caso de Uso}: Classificar idade e gênero simultaneamente
+
+\begin{code}[Modelo com Duas Saídas]{python}
+# Entrada: imagem de rosto
+inputs = keras.Input(shape=(224, 224, 3))
+# Feature extraction compartilhado
+x = layers.Conv2D(32, 3, activation='relu')(inputs)
+x = layers.MaxPooling2D()(x)
+x = layers.Conv2D(64, 3, activation='relu')(x)
+x = layers.MaxPooling2D()(x)
+x = layers.Flatten()(x)
+x = layers.Dense(256, activation='relu')(x)
+# Saída 1: Idade (regressão)
+age_output = layers.Dense(1, name='age')(x)
+# Saída 2: Gênero (classificação binária)
+gender_output = layers.Dense(1, activation='sigmoid', 
+                             name='gender')(x)
+model = keras.Model(inputs=inputs, 
+                   outputs=[age_output, gender_output])
+\end{code}
+
+\end{frame}
+
+\begin{frame}[c,fragile]
+\frametitle{Compilando Modelos com Múltiplas Saídas}
+
+\begin{code}[Especificar Losses e Métricas por Saída]{python}
+model.compile(
+    optimizer='adam',
+    loss={
+        'age': 'mse',           # Mean Squared Error para idade
+        'gender': 'binary_crossentropy'  # BCE para gênero
+    },
+    loss_weights={
+        'age': 0.5,             # Peso relativo de cada loss
+        'gender': 0.5
+    },
+    metrics={
+        'age': ['mae'],         # Mean Absolute Error
+        'gender': ['accuracy']  # Acurácia
+    }
+)
+
+
+\end{code}
+
+\end{frame}
+\begin{frame}[c,fragile]
+\frametitle{Compilando Modelos com Múltiplas Saídas}
+
+\begin{code}[Especificar Losses e Métricas por Saída]{python}
+# Treinar
+history = model.fit(
+    x_train,
+    {'age': y_age_train, 'gender': y_gender_train},
+    validation_data=(x_val, {'age': y_age_val, 
+                             'gender': y_gender_val}),
+    epochs=50
+)
+\end{code}
+
+\end{frame}
+
+\begin{frame}[c,fragile]
+\frametitle{Exemplo: Múltiplas Entradas}
+
+\textbf{Caso de Uso}: Classificação com imagem + metadados
+
+\begin{code}[Modelo com Duas Entradas]{python}
+# Entrada 1: Imagem
+image_input = keras.Input(shape=(224, 224, 3), name='image')
+x1 = layers.Conv2D(32, 3, activation='relu')(image_input)
+x1 = layers.Flatten()(x1)
+# Entrada 2: Metadados (ex: características numéricas)
+metadata_input = keras.Input(shape=(10,), name='metadata')
+x2 = layers.Dense(32, activation='relu')(metadata_input)
+# Concatenar features de ambas entradas
+concatenated = layers.Concatenate()([x1, x2])
+# Camadas de classificação final
+x = layers.Dense(128, activation='relu')(concatenated)
+outputs = layers.Dense(5, activation='softmax')(x)
+
+model = keras.Model(
+    inputs=[image_input, metadata_input],
+    outputs=outputs
+)
+\end{code}
+
+\end{frame}
+
+\begin{frame}[c,fragile]
+\frametitle{Implementando ResNet com API Funcional}
+
+\begin{code}[Bloco Residual]{python}
+def residual_block(x, filters, stride=1):
+    # Salvar identidade para skip connection
+    shortcut = x
+    # Caminho principal
+    x = layers.Conv2D(filters, 3, strides=stride, padding='same')(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.ReLU()(x)
+    
+    x = layers.Conv2D(filters, 3, padding='same')(x)
+    x = layers.BatchNormalization()(x)
+    # Ajustar shortcut se necessário
+    if stride != 1:
+        shortcut = layers.Conv2D(filters, 1, strides=stride)(shortcut)
+        shortcut = layers.BatchNormalization()(shortcut)
+    # Adicionar skip connection
+    x = layers.Add()([x, shortcut])
+    x = layers.ReLU()(x)
+    return x
+\end{code}
+
+\end{frame}
+
+\begin{frame}[c,fragile]
+\frametitle{Construindo ResNet Completo}
+
+\begin{code}[Mini-ResNet]{python}
+def build_mini_resnet(input_shape, num_classes):
+    inputs = keras.Input(shape=input_shape)
+    # Stem
+    x = layers.Conv2D(64, 7, strides=2, padding='same')(inputs)
+    x = layers.BatchNormalization()(x)
+    x = layers.ReLU()(x)
+    x = layers.MaxPooling2D(3, strides=2, padding='same')(x)
+    # Blocos residuais
+    x = residual_block(x, 64)
+    x = residual_block(x, 64)
+    x = residual_block(x, 128, stride=2)
+    x = residual_block(x, 128)
+    x = residual_block(x, 256, stride=2)
+    x = residual_block(x, 256)
+    # Cabeça de classificação
+    x = layers.GlobalAveragePooling2D()(x)
+    outputs = layers.Dense(num_classes, activation='softmax')(x)
+    return keras.Model(inputs, outputs, name='mini_resnet')
+\end{code}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Transfer Learning: Conceito}
+
+\textbf{Ideia Central}
+
+\begin{itemize}
+    \item Treinar CNN do zero requer:
+        \begin{itemize}
+            \item Milhões de imagens rotuladas
+            \item Muito poder computacional
+            \item Dias/semanas de treinamento
+        \end{itemize}
+    \item \textbf{Solução}: Reutilizar conhecimento de modelos pré-treinados!
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Por que funciona?}
+
+\begin{itemize}
+    \item \textbf{Features iniciais são genéricas}:
+        \begin{itemize}
+            \item Bordas, texturas, cores
+            \item Padrões básicos presentes em todas as imagens
+        \end{itemize}
+    \item \textbf{Features finais são específicas}:
+        \begin{itemize}
+            \item Objetos complexos da tarefa original
+            \item Podem ser adaptadas para nova tarefa
+        \end{itemize}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Transfer Learning: O Conceito}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=.8\textwidth]{transfer.png}
+\end{figure}
+
+\end{frame}
+
+
+\begin{frame}[c]
+\frametitle{Transfer Learning: Estratégias}
+
+\textbf{1. Feature Extractor (Congelar Base)}
+
+\begin{itemize}
+    \item \textbf{Quando usar}: Dataset pequeno, domínio similar
+    \item \textbf{Método}: Congelar camadas convolucionais, treinar apenas topo
+    \item \textbf{Vantagem}: Rápido, menos risco de overfitting
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{2. Fine-tuning (Ajustar Parcialmente)}
+
+\begin{itemize}
+    \item \textbf{Quando usar}: Dataset médio/grande
+    \item \textbf{Método}: Congelar camadas iniciais, treinar camadas finais
+    \item \textbf{Vantagem}: Adapta features para tarefa específica
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{3. Treino Completo com Pesos Iniciais}
+
+\begin{itemize}
+    \item \textbf{Quando usar}: Dataset grande, domínio diferente
+    \item \textbf{Método}: Usar pesos pré-treinados como inicialização
+    \item \textbf{Vantagem}: Convergência mais rápida
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c,fragile]
+\frametitle{Transfer Learning: Implementação}
+
+\begin{code}[Feature Extraction]{python}
+# Carregar modelo pré-treinado
+base_model = keras.applications.ResNet50(
+    weights='imagenet',        # Pesos do ImageNet
+    include_top=False,         # Remover classificador
+    input_shape=(224, 224, 3)
+)
+# Congelar base
+base_model.trainable = False
+# Adicionar novo classificador
+inputs = keras.Input(shape=(224, 224, 3))
+x = base_model(inputs, training=False)
+x = layers.GlobalAveragePooling2D()(x)
+x = layers.Dense(256, activation='relu')(x)
+x = layers.Dropout(0.5)(x)
+outputs = layers.Dense(10, activation='softmax')(x)
+model = keras.Model(inputs, outputs)
+\end{code}
+
+\end{frame}
+
+\begin{frame}[c,fragile]
+\frametitle{Transfer Learning: Fine-tuning}
+
+\begin{code}[Fine-tuning em Duas Etapas]{python}
+# Etapa 1: Treinar apenas o topo
+model.compile(optimizer='adam', loss='categorical_crossentropy',
+              metrics=['accuracy'])
+model.fit(train_ds, epochs=10, validation_data=val_ds)
+# Etapa 2: Descongelar algumas camadas finais
+base_model.trainable = True
+# Congelar todas exceto últimas 20 camadas
+for layer in base_model.layers[:-20]:
+    layer.trainable = False
+# Recompilar com learning rate menor
+model.compile(
+    optimizer=keras.optimizers.Adam(1e-5),  # LR baixo!
+    loss='categorical_crossentropy',
+    metrics=['accuracy']
+)
+# Continuar treinamento
+history = model.fit(train_ds, epochs=20, validation_data=val_ds)
+\end{code}
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Modelos Pré-treinados Disponíveis (2025)}
+
+\textbf{Opções em keras.applications}
+
+\begin{table}[h]
+\centering
+\footnotesize
+\begin{tabular}{|l|c|c|l|}
+\hline
+\textbf{Modelo} & \textbf{Parâmetros} & \textbf{Top-1 Acc} & \textbf{Melhor Para} \\
+\hline
+MobileNetV3 & 5M & 75.6\% & Mobile, edge devices \\
+\hline
+EfficientNetB0 & 5M & 77.1\% & Balance geral \\
+\hline
+ResNet50 & 26M & 80.4\% & Baseline confiável \\
+\hline
+EfficientNetV2-M & 54M & 85.1\% & Alta performance \\
+\hline
+ConvNeXt-Large & 198M & 86.6\% & Estado da arte \\
+\hline
+\end{tabular}
+\end{table}
+
+\vspace{0.3cm}
+
+\textbf{Considerações para Escolha}
+
+\begin{itemize}
+    \item \textbf{Recursos limitados}: MobileNet, EfficientNetB0
+    \item \textbf{Produção padrão}: ResNet50, EfficientNetB3
+    \item \textbf{Máxima acurácia}: ConvNeXt, EfficientNetV2
+    \item \textbf{Domínio específico}: Buscar modelos especializados
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c,fragile]
+\frametitle{Callbacks: Controle Avançado do Treinamento}
+
+\textbf{O que são Callbacks?}
+
+\begin{itemize}
+    \item Funções chamadas em pontos específicos do treinamento
+    \item Permitem monitorar e controlar o processo
+    \item Essenciais para treino em produção
+\end{itemize}
+
+\end{frame}
+\begin{frame}[c,fragile]
+\frametitle{Callbacks: Controle Avançado do Treinamento}
+
+\begin{code}[Callbacks Essenciais]{python}
+from keras.callbacks import (
+    ModelCheckpoint, EarlyStopping, ReduceLROnPlateau,
+    TensorBoard, CSVLogger
+)
+callbacks = [
+    # Salvar melhor modelo
+    ModelCheckpoint('best_model.keras', 
+                   monitor='val_accuracy',
+                   save_best_only=True),
+    # Parar se não melhorar
+    EarlyStopping(monitor='val_loss', patience=10,
+                 restore_best_weights=True),
+    # Reduzir LR se estagnar
+    ReduceLROnPlateau(monitor='val_loss', factor=0.5,
+                     patience=5, min_lr=1e-7)
+]
+\end{code}
+
+\end{frame}
+
+\begin{frame}[c,fragile]
+\frametitle{Callbacks: TensorBoard}
+
+\textbf{Visualização Interativa do Treinamento}
+
+\begin{code}[Configurar TensorBoard]{python}
+import datetime
+# Criar diretório com timestamp
+log_dir = f"logs/fit/{datetime.datetime.now():%Y%m%d-%H%M%S}"
+tensorboard_callback = TensorBoard(
+    log_dir=log_dir,
+    histogram_freq=1,        # Histogramas de pesos
+    write_graph=True,        # Visualizar grafo
+    write_images=True,       # Visualizar augmentations
+    update_freq='epoch',     # Frequência de atualização
+    profile_batch='10,20'    # Profiling de performance
+)
+# Treinar
+model.fit(train_ds, epochs=50,
+         validation_data=val_ds,
+         callbacks=[tensorboard_callback])
+# Visualizar: tensorboard --logdir=logs/fit
+\end{code}
+\end{frame}
+
+\begin{frame}[c,fragile]
+\frametitle{Callbacks Customizados}
+
+\begin{code}[Criar Callback Personalizado]{python}
+class CustomCallback(keras.callbacks.Callback):
+    def on_epoch_end(self, epoch, logs=None):
+        # Executado ao fim de cada época
+        if logs['val_accuracy'] > 0.95:
+            print(f"\nAcurácia alvo atingida em {epoch}!")
+            self.model.stop_training = True
+    
+    def on_train_begin(self, logs=None):
+        print("Iniciando treinamento...")
+
+    def on_train_end(self, logs=None):
+        print("Treinamento finalizado!")
+# Uso
+custom_cb = CustomCallback()
+model.fit(train_ds, epochs=100, 
+         callbacks=[custom_cb])
+\end{code}
+
+\textbf{Casos de Uso}: Logging customizado, salvamento periódico, visualizações
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Regularização: Dropout e Batch Normalization}
+
+\textbf{Dropout}
+
+\begin{itemize}
+    \item \textbf{Conceito}: Desativar neurônios aleatoriamente durante treino
+    \item \textbf{Taxa típica}: 0.2 a 0.5
+    \item \textbf{Onde usar}: Antes de camadas Dense, após GlobalPooling
+    \item \textbf{Efeito}: Força rede a aprender features redundantes
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Batch Normalization}
+
+\begin{itemize}
+    \item \textbf{Conceito}: Normalizar ativações entre mini-batches
+    \item \textbf{Onde usar}: Após Conv2D, antes ou depois da ativação
+    \item \textbf{Benefícios}:
+        \begin{itemize}
+            \item Acelera convergência
+            \item Permite learning rates maiores
+            \item Regularização implícita
+            \item Reduz sensibilidade à inicialização
+        \end{itemize}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c,fragile]
+\frametitle{Boas Práticas de Regularização}
+
+\begin{code}[CNN Moderna com Regularização]{python}
+def build_regularized_model():
+    inputs = keras.Input(shape=(224, 224, 3))
+    
+    # Stem com BatchNorm
+    x = layers.Conv2D(64, 7, strides=2, padding='same')(inputs)
+    x = layers.BatchNormalization()(x)
+    x = layers.ReLU()(x)
+    
+    # Blocos com BN e Dropout
+    for filters in [64, 128, 256]:
+        x = layers.Conv2D(filters, 3, padding='same')(x)
+        x = layers.BatchNormalization()(x)
+        x = layers.ReLU()(x)
+        x = layers.MaxPooling2D()(x)
+        x = layers.Dropout(0.25)(x)  # Spatial dropout
+\end{code}
+
+\end{frame}       
+\begin{frame}[c,fragile]
+\frametitle{Boas Práticas de Regularização}
+
+\begin{code}[CNN Moderna com Regularização]{python} 
+    # Classificador com Dropout
+    x = layers.GlobalAveragePooling2D()(x)
+    x = layers.Dense(512)(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.ReLU()(x)
+    x = layers.Dropout(0.5)(x)
+    outputs = layers.Dense(10, activation='softmax')(x)
+    
+    return keras.Model(inputs, outputs)
+\end{code}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Otimizadores Modernos}
+
+\textbf{Evolução dos Otimizadores}
+
+\begin{itemize}
+    \item \textbf{SGD}: Baseline, requer tuning cuidadoso
+    \item \textbf{Momentum}: SGD + memória de gradientes
+    \item \textbf{Adam (2014)}: Adaptive learning rate, popular
+    \item \textbf{AdamW (2017)}: Adam com weight decay correto
+    \item \textbf{Lion (2023)}: Eficiente, menos memória
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Recomendações 2025}
+
+\begin{itemize}
+    \item \textbf{Primeiro experimento}: Adam com LR=1e-3
+    \item \textbf{Transfer learning}: Adam com LR=1e-5 (fine-tuning)
+    \item \textbf{Treino longo}: AdamW com cosine decay
+    \item \textbf{Recursos limitados}: Lion (menor memória)
+    \item \textbf{Máxima performance}: SGD com momentum + scheduler
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c,fragile]
+\frametitle{Learning Rate Scheduling}
+
+\begin{code}[Schedulers de Learning Rate]{python}
+from keras.optimizers.schedules import (
+    ExponentialDecay, CosineDecay, PolynomialDecay
+)
+# 1. Decaimento Exponencial
+lr_schedule = ExponentialDecay(
+    initial_learning_rate=1e-3,
+    decay_steps=1000,
+    decay_rate=0.96
+)
+# 2. Cosine Decay (popular em 2025)
+lr_schedule = CosineDecay(
+    initial_learning_rate=1e-3,
+    decay_steps=10000,
+    alpha=0.01  # LR mínimo
+)
+\end{code}
+
+\end{frame}
+\begin{frame}[c,fragile]
+\frametitle{Learning Rate Scheduling}
+
+\begin{code}[Schedulers de Learning Rate]{python}
+# 3. Warm-up + Decay
+def create_warmup_schedule(warmup_steps, total_steps):
+    def schedule(step):
+        if step < warmup_steps:
+            return step / warmup_steps
+        else:
+            return (total_steps - step) / (total_steps - warmup_steps)
+    return schedule
+
+optimizer = keras.optimizers.AdamW(learning_rate=lr_schedule)
+\end{code}
+
+\end{frame}
+
+\begin{frame}[c,fragile]
+\frametitle{Mixed Precision Training (2025)}
+
+\textbf{O que é?}
+
+\begin{itemize}
+    \item Usar float16 para aceleração, float32 para estabilidade
+    \item \textbf{Benefícios}: 2-3x mais rápido, usa menos memória
+    \item \textbf{Requisito}: GPU com Tensor Cores (Volta+)
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c,fragile]
+\frametitle{Mixed Precision Training (2025)}
+
+\begin{code}[Habilitar Mixed Precision]{python}
+# Configurar política de mixed precision
+keras.mixed_precision.set_global_policy('mixed_float16')
+# Modelo normal - Keras cuida do resto automaticamente
+model = build_model()
+# Última camada deve ser float32 para estabilidade
+outputs = layers.Dense(10, activation='softmax', 
+                      dtype='float32', name='predictions')(x)
+# Compilar normalmente
+model.compile(
+    optimizer='adam',
+    loss='categorical_crossentropy',
+    metrics=['accuracy']
+)
+# Treinar - 2-3x mais rápido!
+model.fit(train_ds, epochs=50)
+\end{code}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Técnicas Avançadas de 2025}
+
+\textbf{1. Gradient Accumulation}
+
+\begin{itemize}
+    \item Simular batches maiores em hardware limitado
+    \item Acumular gradientes por N steps antes de atualizar
+    \item Útil para modelos muito grandes
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{2. Stochastic Weight Averaging (SWA)}
+
+\begin{itemize}
+    \item Média de checkpoints durante final do treino
+    \item Melhor generalização com custo mínimo
+    \item Implementado como callback em Keras 3
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{3. Knowledge Distillation}
+
+\begin{itemize}
+    \item Treinar modelo pequeno (student) com modelo grande (teacher)
+    \item Transferir conhecimento via soft targets
+    \item Conseguir 90\%+ da performance com modelo 10x menor
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Knowledge Distillation}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=.8\textwidth]{destill.jpg}
+\end{figure}
+
+\end{frame}
+
+\begin{frame}[c,fragile]
+\frametitle{Monitoramento e Debugging}
+
+\textbf{Ferramentas Essenciais}
+
+\begin{code}[Debugging e Monitoramento]{python}
+# 1. Verificar dataset
+for images, labels in train_ds.take(1):
+    print(f"Batch shape: {images.shape}")
+    print(f"Label shape: {labels.shape}")
+    print(f"Min/Max: {images.numpy().min():.2f}, {images.numpy().max():.2f}")
+# 2. Visualizar modelo
+model.summary()
+keras.utils.plot_model(model, show_shapes=True, to_file='model.png')
+# 3. Gradient checking
+with tf.GradientTape() as tape:
+    predictions = model(images, training=True)
+    loss = loss_fn(labels, predictions)
+gradients = tape.gradient(loss, model.trainable_weights)
+print(f"Número de gradientes: {len(gradients)}")
+print(f"Gradiente médio: {tf.reduce_mean([tf.reduce_mean(tf.abs(g))
+        for g in gradients]):.6f}")
+\end{code}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Checklist: Treinamento Efetivo}
+
+\textbf{Antes de Treinar}
+
+\begin{itemize}
+    \item[$\square$] Dataset balanceado e representativo
+    \item[$\square$] Normalização/padronização aplicada
+    \item[$\square$] Data augmentation apropriada ao domínio
+    \item[$\square$] Train/val/test splits bem definidos
+    \item[$\square$] Baseline estabelecida
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Durante Treinamento}
+
+\begin{itemize}
+    \item[$\square$] Monitorar overfitting (train vs val loss)
+    \item[$\square$] Verificar convergência do learning rate
+    \item[$\square$] Usar callbacks (early stopping, checkpoints)
+    \item[$\square$] Visualizar métricas no TensorBoard
+    \item[$\square$] Salvar checkpoints regularmente
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Checklist: Treinamento Efetivo (cont.)}
+
+\textbf{Debugging}
+
+\begin{itemize}
+    \item[$\square$] Verificar se modelo consegue overfit em batch pequeno
+    \item[$\square$] Inspecionar predições em exemplos individuais
+    \item[$\square$] Visualizar ativações e feature maps
+    \item[$\square$] Checar distribuição de gradientes
+    \item[$\square$] Validar pipeline de dados
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Otimização}
+
+\begin{itemize}
+    \item[$\square$] Tunar hyperparâmetros sistematicamente
+    \item[$\square$] Experimentar diferentes arquiteturas
+    \item[$\square$] Testar diferentes augmentations
+    \item[$\square$] Considerar ensemble de modelos
+    \item[$\square$] Avaliar no conjunto de teste apenas no final
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Exemplo Completo: Pipeline de Produção}
+
+\textbf{Componentes de um Pipeline Robusto}
+
+\begin{enumerate}
+    \item \textbf{Preparação de Dados}
+        \begin{itemize}
+            \item tf.data.Dataset com prefetching e caching
+            \item Augmentation integrada ao modelo
+            \item Validação cruzada estratificada
+        \end{itemize}
+    
+    \item \textbf{Modelo}
+        \begin{itemize}
+            \item Transfer learning com fine-tuning
+            \item Regularização (Dropout, BatchNorm, L2)
+            \item Mixed precision para performance
+        \end{itemize}
+    
+    \item \textbf{Treinamento}
+        \begin{itemize}
+            \item Callbacks completos (checkpoint, early stopping, LR reduction)
+            \item TensorBoard para monitoramento
+            \item Salvamento de métricas e logs
+        \end{itemize}
+    
+    \item \textbf{Validação e Deploy}
+        \begin{itemize}
+            \item Avaliação no test set
+            \item Análise de erros
+            \item Otimização para inferência (TFLite, ONNX)
+        \end{itemize}
+\end{enumerate}
+
+\end{frame}
+
+\begin{frame}[c,fragile]
+\frametitle{Template: Pipeline Completo}
+
+\begin{code}[Pipeline de Produção]{python}
+import keras
+from keras import layers
+import tensorflow as tf
+# 1. Preparar dados
+train_ds = tf.keras.utils.image_dataset_from_directory('data/train', image_size=(224,224), batch_size=32).cache().prefetch(tf.data.AUTOTUNE)
+# 2. Augmentation
+augmentation = keras.Sequential([
+    layers.RandomFlip(), layers.RandomRotation(0.2),
+    layers.RandomZoom(0.2), layers.RandomContrast(0.2)
+])
+
+\end{code}
+
+\end{frame}
+\begin{frame}[c,fragile]
+\frametitle{Template: Pipeline Completo (cont.)}
+
+\begin{code}[Pipeline de Produção - Continuação]{python}
+# 3. Transfer learning
+base = keras.applications.EfficientNetB3(
+    include_top=False, weights='imagenet'
+)
+base.trainable = False
+
+inputs = keras.Input(shape=(224, 224, 3))
+x = augmentation(inputs)
+x = layers.Rescaling(1./255)(x)
+x = base(x, training=False)
+x = layers.GlobalAveragePooling2D()(x)
+x = layers.Dense(256, activation='relu')(x)
+x = layers.BatchNormalization()(x)
+x = layers.Dropout(0.5)(x)
+outputs = layers.Dense(10, activation='softmax',
+                      dtype='float32')(x)
+model = keras.Model(inputs, outputs)
+\end{code}
+
+\end{frame}
+
+\begin{frame}[c,fragile]
+\frametitle{Template: Pipeline Completo (cont.)}
+
+\begin{code}[Pipeline de Produção - Continuação]{python}
+# 4. Compilar
+model.compile(
+    optimizer=keras.optimizers.Adam(1e-3),
+    loss='sparse_categorical_crossentropy',
+    metrics=['accuracy']
+)
+# 5. Callbacks
+callbacks = [
+    keras.callbacks.ModelCheckpoint('best.keras', 
+                                   save_best_only=True),
+    keras.callbacks.EarlyStopping(patience=10, 
+                                 restore_best_weights=True),
+    keras.callbacks.ReduceLROnPlateau(factor=0.5, patience=5),
+    keras.callbacks.TensorBoard(log_dir='logs')
+]
+# 6. Treinar
+model.fit(train_ds, epochs=100, validation_data=val_ds,
+         callbacks=callbacks)
+\end{code}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Recursos e Próximos Passos}
+
+\textbf{Documentação Oficial}
+
+\begin{itemize}
+    \item \textbf{Keras 3}: \texttt{keras.io} - API reference completa
+    \item \textbf{TensorFlow}: \texttt{tensorflow.org/tutorials}
+    \item \textbf{Papers}: arxiv.org/list/cs.CV/recent
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Práticas Recomendadas}
+
+\begin{itemize}
+    \item Começar com modelos pré-treinados
+    \item Experimentar sistematicamente (controle de versão, MLflow)
+    \item Investir tempo em preparação de dados
+    \item Monitorar tudo com TensorBoard
+    \item Validar no mundo real, não apenas métricas
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Próxima Aula}
+
+\begin{itemize}
+    \item \textbf{Tópico}: Texto + Word Vectors
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Resumo da Aula}
+
+\textbf{Principais Conceitos}
+
+\begin{itemize}
+    \item \textbf{Data Augmentation}
+        \begin{itemize}
+            \item Expandir datasets artificialmente
+            \item Usar camadas de preprocessing em Keras 3
+            \item Escolher augmentations apropriadas ao domínio
+        \end{itemize}
+    
+    \item \textbf{API Funcional}
+        \begin{itemize}
+            \item Flexibilidade para grafos complexos
+            \item Múltiplas entradas/saídas
+            \item Skip connections e arquiteturas modernas
+        \end{itemize}
+    
+    \item \textbf{Transfer Learning}
+        \begin{itemize}
+            \item Reutilizar conhecimento pré-treinado
+            \item Feature extraction vs fine-tuning
+            \item Escolher modelo base apropriado
+        \end{itemize}
+    
+    \item \textbf{Boas Práticas}
+        \begin{itemize}
+            \item Callbacks para controle de treino
+            \item Regularização (Dropout, BatchNorm)
+            \item Mixed precision para performance
+        \end{itemize}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Perguntas}
+
+\textbf{Q: Ainda posso usar ImageDataGenerator?}
+
+A: Funciona, mas está deprecated. Use keras.layers para augmentation.
+
+\vspace{0.3cm}
+
+\textbf{Q: Quando usar Sequential vs Functional API?}
+
+A: Sequential para modelos simples lineares. Functional para tudo mais.
+
+\vspace{0.3cm}
+
+\textbf{Q: Quanto data augmentation é demais?}
+
+A: Se val loss $>$ train loss e não melhora, reduza augmentation.
+
+\vspace{0.3cm}
+
+\textbf{Q: Sempre usar transfer learning?}
+
+A: Quase sempre! Treinar do zero só se: dataset imenso OU domínio muito diferente.
+
+\vspace{0.3cm}
+
+\textbf{Q: Mixed precision quebra meu modelo?}
+
+A: Raro. Se acontecer, verifique overflow em loss (use loss scaling automático).
+
+\end{frame}
+
+\begin{frame}[c, noframenumbering, plain]
+    \frametitle{~}
+    \vfill
+    \begin{center}
+        {\Huge Obrigado!}\vspace{1.5em}\\
+        {\Large \highlight{Dúvidas?}}\\
+    \end{center}
+    \vfill
+    % \begin{center}
+    %     {\small Próxima aula: 22/10/2025}\\
+    %     {\small Tema: Arquiteturas Modernas de CNNs}
+    % \end{center}
+\end{frame}
+
+\end{document}

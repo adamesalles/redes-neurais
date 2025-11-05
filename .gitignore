@@ -19,6 +19,7 @@ base_course
 *.lot
 *.minted
 _minted
+*.listing
 
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/

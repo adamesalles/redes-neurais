@@ -1,0 +1,1143 @@
+\documentclass[xcolor=dvipsnames,t,aspectratio=169]{beamer}
+
+\usecolortheme{rose}
+\usecolortheme{dolphin}
+\usetheme{Boadilla}
+
+\input{../../templates/slides/imports}
+\input{../../templates/slides/settings}
+\input{../../templates/slides/commands}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, shapes, positioning, calc}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{listings}
+
+% Configuração para código Python
+\lstset{
+    language=Python,
+    basicstyle=\tiny\ttfamily,
+    keywordstyle=\color{blue},
+    commentstyle=\color{green!60!black},
+    stringstyle=\color{orange},
+    showstringspaces=false,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray}
+}
+
+\titlegraphic{
+    \includegraphics[scale = 0.5]{../../templates/slides/logo}
+}
+
+\logo{
+\begin{tikzpicture}[overlay,remember picture]
+\node[below left = 0.2cm] at (current page.30) {
+    \includegraphics[width=0.1\textwidth]{../../templates/slides/logo}};
+\end{tikzpicture}
+}
+
+\newcommand{\highlight}[1]{{\color{nes_dark_orange} #1}}
+
+\title{Redes Neurais Convolucionais (CNNs) e Transfer Learning} 
+
+\author{
+    Eduardo Adame
+}
+
+\date{{\color{nes_dark_purple}  \textbf{Redes Neurais}\\[0.5em] 15 de outubro de 2025 }}
+
+\begin{document}
+
+\frame[plain]{\titlepage}
+\setcounter{framenumber}{0}
+
+\section{Revisão e Motivação}
+
+\begin{frame}[c]{Agenda da Aula}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Parte 1: CNNs}
+            \begin{itemize}
+                \item Revisão: Limitações das MLPs
+                \item Operação de Convolução
+                \item Arquitetura LeNet-5
+                \item Cálculo de dimensões
+                \item Pooling e seus tipos
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Parte 2: Transfer Learning}
+            \begin{itemize}
+                \item Motivação e conceitos
+                \item Fine-tuning estratégico
+                \item Quando usar cada abordagem
+                \item Implementação prática
+                \item Aplicações modernas
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Revisão: Por que CNNs?}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Problemas das MLPs com Imagens:}
+            \begin{itemize}
+                \item \highlight{Explosão paramétrica}
+                \begin{itemize}
+                    \item Imagem 224$\times$224 RGB = 150.528 entradas
+                    \item Uma camada oculta (1000 neurônios): 
+                    \item \alert{150 milhões de parâmetros!}
+                \end{itemize}
+                \item \highlight{Perda de localidade espacial}
+                \item \highlight{Sem invariância translacional}
+            \end{itemize}
+            
+            \vspace{0.3cm}
+            \textbf{Solução: Convolução}
+            \begin{itemize}
+                \item Compartilhamento de pesos
+                \item Conectividade local
+                \item Hierarquia de características
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \begin{tikzpicture}[scale=0.7]
+                % MLP: todos conectados
+                \node at (0,4.5) {\textbf{MLP: Conexão Total}};
+                \foreach \i in {0,...,3} {
+                    \foreach \j in {0,...,3} {
+                        \draw[fill=blue!20] (\i*0.3,2.5+\j*0.3) rectangle (\i*0.3+0.25,2.75+\j*0.3);
+                    }
+                }
+                \foreach \k in {0,...,2} {
+                    \node[circle, draw, fill=orange!30] (h\k) at (2.5,2.8+\k*0.5) {};
+                    \foreach \i in {0,...,3} {
+                        \foreach \j in {0,...,3} {
+                            \draw[gray, opacity=0.2] (\i*0.3+0.125,2.625+\j*0.3) -- (h\k);
+                        }
+                    }
+                }
+                
+                % CNN: conexão local
+                \node at (0,1) {\textbf{CNN: Conexão Local}};
+                \foreach \i in {0,...,3} {
+                    \foreach \j in {0,...,3} {
+                        \draw[fill=blue!20] (\i*0.3,-1+\j*0.3) rectangle (\i*0.3+0.25,-0.75+\j*0.3);
+                    }
+                }
+                % Destacar região 3x3
+                \draw[ultra thick, red] (0,-1) rectangle (0.85,-0.15);
+                \node[circle, draw, fill=green!30] (c1) at (2.5,-0.5) {};
+                \draw[thick, ->] (0.425,-0.575) -- (c1);
+            \end{tikzpicture}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\section{Arquitetura LeNet-5}
+
+\begin{frame}[c]{LeNet-5: Pioneira das CNNs}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Criada por Yann LeCun (1998)}
+            \begin{itemize}
+                \item Dataset MNIST: dígitos manuscritos
+                \item 60.000 imagens treino / 10.000 teste
+                \item Imagens 28$\times$28 em escala de cinza
+                \item Padding para 32$\times$32
+            \end{itemize}
+            
+            \vspace{0.5cm}
+            \textbf{Inovação Principal:}
+            \begin{itemize}
+                \item Usar \highlight{convoluções} para aprender características
+                \item Redução progressiva de dimensões
+                \item Extração hierárquica de features
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \begin{center}
+                \includegraphics[width=\textwidth]{lenet_architecture.png}
+                
+                \vspace{0.3cm}
+                {\small Arquitetura: Conv $\to$ Pool $\to$ Conv $\to$ Pool $\to$ FC $\to$ FC $\to$ Saída}
+            \end{center}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Operação de Convolução: Matemática}
+    \begin{columns}[]
+        \begin{column}{0.55\textwidth}
+            \textbf{Definição Matemática:}
+            
+            Para entrada $X$ e kernel $W$:
+            \begin{equation}
+                Y_{i,j} = \sum_{m=0}^{k-1} \sum_{n=0}^{k-1} X_{i+m,j+n} \cdot W_{m,n} + b
+            \end{equation}
+            
+            onde:
+            \begin{itemize}
+                \item $Y_{i,j}$: pixel da saída na posição $(i,j)$
+                \item $k$: tamanho do kernel (ex: 3$\times$3, 5$\times$5)
+                \item $b$: bias
+            \end{itemize}
+            
+            % \vspace{0.3cm}
+            
+        \end{column}
+        \begin{column}{0.45\textwidth}
+            \textbf{Cálculo de Dimensão de Saída:}
+            \begin{equation}
+                \text{Saída} = \left\lfloor \frac{N - K + 2P}{S} \right\rfloor + 1
+            \end{equation}
+            \begin{itemize}
+                \item $N$: dimensão entrada
+                \item $K$: dimensão kernel
+                \item $P$: padding
+                \item $S$: stride
+            \end{itemize}
+            
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Operação de Convolução: Matemática}
+    \textbf{Exemplo Numérico:}
+            % \begin{tikzpicture}[scale=0.5]
+            %     % Entrada 5x5
+            %     \node at (0,5.5) {\small Entrada 5$\times$5};
+            %     \foreach \i in {0,...,4} {
+            %         \foreach \j in {0,...,4} {
+            %             \node[scale=0.6] at (\i*0.8,4-\j*0.8) {1};
+            %         }
+            %     }
+            %     \draw[step=0.8] (-0.4,-0.4) grid (3.6,4.4);
+                
+            %     % Kernel 3x3
+            %     \node at (6,5.5) {\small Kernel 3$\times$3};
+            %     \draw[fill=orange!20] (5.2,3.2) grid (7.2,4.4);
+            %     \node[scale=0.6] at (5.6,4) {1}; \node[scale=0.6] at (6.4,4) {0}; \node[scale=0.6] at (7.2,4) {-1};
+            %     \node[scale=0.6] at (5.6,3.2) {1}; \node[scale=0.6] at (6.4,3.2) {0}; \node[scale=0.6] at (7.2,3.2) {-1};
+            %     \node[scale=0.6] at (5.6,2.4) {1}; \node[scale=0.6] at (6.4,2.4) {0}; \node[scale=0.6] at (7.2,2.4) {-1};
+                
+            %     % Highlight região
+            %     \draw[ultra thick, red] (-0.4,2.8) rectangle (2,4.4);
+                
+            %     % Seta
+            %     \draw[->, ultra thick] (3,1.5) -- (5,1.5);
+                
+            %     % Saída
+            %     \node at (7,1) {\small Saída 3$\times$3};
+            %     \draw[fill=green!20] (5.6,-0.4) grid (7.6,1.6);
+            % \end{tikzpicture}
+            
+            \vspace{0.5cm}
+            Entrada 5x5, kernel 3x3, com stride=1 e padding=0:\pause{}
+            $$\text{Saída} = \frac{5-3+0}{1} + 1 = 3$$
+\end{frame}
+
+\begin{frame}[c]{LeNet-5: Análise Camada por Camada}
+    \begin{center}
+        \begin{tikzpicture}[scale=0.9]
+            % C1
+            \node[draw, fill=blue!20] (c1) at (-1,0) {
+                \begin{tabular}{c}
+                    \textbf{C1: Conv} \\
+                    6@28$\times$28 \\
+                    \tiny 156 pesos
+                \end{tabular}
+            };
+            
+            % S2
+            \node[draw, fill=green!20] (s2) at (2,0) {
+                \begin{tabular}{c}
+                    \textbf{S2: Pool} \\
+                    6@14$\times$14 \\
+                    \tiny 0 pesos
+                \end{tabular}
+            };
+            
+            % C3
+            \node[draw, fill=blue!20] (c3) at (5,0) {
+                \begin{tabular}{c}
+                    \textbf{C3: Conv} \\
+                    16@10$\times$10 \\
+                    \tiny 2.416 pesos
+                \end{tabular}
+            };
+            
+            % S4
+            \node[draw, fill=green!20] (s4) at (8,0) {
+                \begin{tabular}{c}
+                    \textbf{S4: Pool} \\
+                    16@5$\times$5 \\
+                    \tiny 0 pesos
+                \end{tabular}
+            };
+            
+            % C5
+            \node[draw, fill=orange!20] (c5) at (10.75,0) {
+                \begin{tabular}{c}
+                    \textbf{C5: FC} \\
+                    120 \\
+                    \tiny 48.120 pesos
+                \end{tabular}
+            };
+            
+            % Arrows
+            \draw[->, thick] (-2.5,0) node[left] {\small 32$\times$32$\times$1} -- (c1);
+            \draw[->, thick] (c1) -- (s2);
+            \draw[->, thick] (s2) -- (c3);
+            \draw[->, thick] (c3) -- (s4);
+            \draw[->, thick] (s4) -- (c5);
+            
+            % Annotations
+            \node[above=.5cm] at (0.75,0.35) {\tiny 5$\times$5, stride=1};
+            \node[above=.5cm] at (3.75,0.35) {\tiny 2$\times$2, stride=2};
+            \node[above=.5cm] at (6.75,0.35) {\tiny 5$\times$5, stride=1};
+            \node[above=.5cm] at (9.75,0.35) {\tiny 2$\times$2, stride=2};
+        \end{tikzpicture}
+    \end{center}
+    
+    \vspace{0.5cm}
+    
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Cálculo de Pesos - C1:}
+            \begin{itemize}
+                \item Kernel: 5$\times$5$\times$1 = 25 pesos
+                \item Bias: 1 peso
+                \item Total por filtro: 26
+                \item \highlight{6 filtros: 6$\times$26 = 156}
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Cálculo de Pesos - C3:}
+            \begin{itemize}
+                \item Kernel: 5$\times$5$\times$\alert{6} = 150 pesos
+                \item Bias: 1 peso
+                \item Total por filtro: 151
+                \item \highlight{16 filtros: 16$\times$151 = 2.416}
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Pooling: Redução de Dimensionalidade}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Objetivos do Pooling:}
+            \begin{itemize}
+                \item Reduzir dimensões espaciais
+                \item Diminuir parâmetros/computação
+                \item Adicionar invariância local
+                \item Controlar overfitting
+            \end{itemize}
+            
+            \vspace{0.5cm}
+            \textbf{Tipos Principais:}
+            \begin{itemize}
+                \item \highlight{Max Pooling}: $\max(\text{região})$
+                \item \highlight{Average Pooling}: $\text{média}(\text{região})$
+                \item Global Average Pooling (GAP)
+                \item Stochastic Pooling
+            \end{itemize}
+            
+            \textbf{Observação:} Pooling não tem pesos treináveis!
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Exemplo: Max Pooling 2$\times$2, stride=2}
+            
+            \begin{tikzpicture}[scale=0.8]
+                \node at (0,3) {\small Entrada 4$\times$4};
+                \draw[step=0.5] (0,0) grid (2,2);
+                % Values
+                \node[scale=0.5] at (0.25,1.75) {12};
+                \node[scale=0.5] at (0.75,1.75) {20};
+                \node[scale=0.5] at (1.25,1.75) {30};
+                \node[scale=0.5] at (1.75,1.75) {0};
+                
+                \node[scale=0.5] at (0.25,1.25) {8};
+                \node[scale=0.5] at (0.75,1.25) {12};
+                \node[scale=0.5] at (1.25,1.25) {2};
+                \node[scale=0.5] at (1.75,1.25) {0};
+                
+                \node[scale=0.5] at (0.25,0.75) {34};
+                \node[scale=0.5] at (0.75,0.75) {70};
+                \node[scale=0.5] at (1.25,0.75) {37};
+                \node[scale=0.5] at (1.75,0.75) {4};
+                
+                \node[scale=0.5] at (0.25,0.25) {112};
+                \node[scale=0.5] at (0.75,0.25) {100};
+                \node[scale=0.5] at (1.25,0.25) {25};
+                \node[scale=0.5] at (1.75,0.25) {12};
+                
+                % Highlight regions
+                \draw[ultra thick, red] (0,1) rectangle (1,2);
+                \draw[ultra thick, blue] (1,1) rectangle (2,2);
+                \draw[ultra thick, green] (0,0) rectangle (1,1);
+                \draw[ultra thick, orange] (1,0) rectangle (2,1);
+                
+                % Arrow
+                \draw[->, ultra thick] (2.5,1) -- (3.5,1);
+                
+                % Output
+                \node at (4.5,3) {\small Saída 2$\times$2};
+                \draw[step=0.5] (4,0.5) grid (5,1.5);
+                \node at (4.25,1.25) {\color{red}20};
+                \node at (4.75,1.25) {\color{blue}30};
+                \node at (4.25,0.75) {\color{green}112};
+                \node at (4.75,0.75) {\color{orange}37};
+            \end{tikzpicture}
+            
+            \vspace{0.3cm}
+            \highlight{Redução: 75\% dos dados!}
+            
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Contagem Total de Parâmetros}
+    \begin{center}
+        \begin{tabular}{|l|l|c|c|}
+            \hline
+            \textbf{Camada} & \textbf{Cálculo} & \textbf{Pesos} & \textbf{Acumulado} \\
+            \hline
+            \hline
+            Conv1 (C1) & $1 \times 6 \times 5 \times 5 + 6$ & 156 & 156 \\
+            \hline
+            Pool1 (S2) & Sem parâmetros & 0 & 156 \\
+            \hline
+            Conv2 (C3) & $6 \times 16 \times 5 \times 5 + 16$ & 2.416 & 2.572 \\
+            \hline
+            Pool2 (S4) & Sem parâmetros & 0 & 2.572 \\
+            \hline
+            FC1 (C5) & $400 \times 120 + 120$ & 48.120 & 50.692 \\
+            \hline
+            FC2 (F6) & $120 \times 84 + 84$ & 10.164 & 60.856 \\
+            \hline
+            Output & $84 \times 10 + 10$ & 850 & \highlight{61.706} \\
+            \hline
+        \end{tabular}
+    \end{center}
+    
+    
+    \begin{attention}[Comparação com MLP]
+        \begin{itemize}
+            \item MLP equivalente (32$\times$32 $\to$ 120 $\to$ 84 $\to$ 10): \alert{$\approx$ 130.000 parâmetros}
+            \item LeNet-5: \highlight{61.706 parâmetros}
+            \item \textbf{Redução de 53\%} com melhor performance!
+        \end{itemize}
+    \end{attention}
+\end{frame}
+
+\begin{frame}[c, fragile]{Implementação em PyTorch}
+\begin{code}[]{python}
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class LeNet5(nn.Module):
+    def __init__(self):
+        super(LeNet5, self).__init__()
+        # Camadas convolucionais
+        self.conv1 = nn.Conv2d(1, 6, kernel_size=5, stride=1, padding=2)
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.conv2 = nn.Conv2d(6, 16, kernel_size=5, stride=1)
+        
+        # Camadas totalmente conectadas
+        self.fc1 = nn.Linear(16 * 5 * 5, 120)
+        self.fc2 = nn.Linear(120, 84)
+        self.fc3 = nn.Linear(84, 10)
+\end{code}
+\end{frame}
+
+\begin{frame}[c, fragile]{Implementação em PyTorch}
+\begin{code}[]{python}
+    def forward(self, x):
+        # C1: 32x32x1 -> 28x28x6
+        x = self.pool(F.relu(self.conv1(x)))  # -> 14x14x6
+        # C3: 14x14x6 -> 10x10x16
+        x = self.pool(F.relu(self.conv2(x)))  # -> 5x5x16
+        # Flatten
+        x = x.view(-1, 16 * 5 * 5)
+        # Fully connected
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
+\end{code}
+\end{frame}
+
+\begin{frame}[c, fragile]{Treinamento no MNIST}
+\begin{code}[]{python}
+import torchvision
+import torchvision.transforms as transforms
+from torch.optim import Adam
+
+# Preparar dados
+transform = transforms.Compose([
+    transforms.Pad(2),  # 28x28 -> 32x32
+    transforms.ToTensor(),
+    transforms.Normalize((0.1307,), (0.3081,))
+])
+
+trainset = torchvision.datasets.MNIST(root='./data', 
+                                      train=True,
+                                      download=True, 
+                                      transform=transform)
+trainloader = torch.utils.data.DataLoader(trainset, 
+                                          batch_size=64,
+                                          shuffle=True)
+\end{code}
+\end{frame}
+
+
+\begin{frame}[c, fragile]{Treinamento no MNIST}
+\begin{code}[]{python}
+# Modelo, loss e otimizador
+model = LeNet5()
+criterion = nn.CrossEntropyLoss()
+optimizer = Adam(model.parameters(), lr=0.001)
+
+# Loop de treinamento
+for epoch in range(10):
+    for i, (images, labels) in enumerate(trainloader):
+        optimizer.zero_grad()
+        outputs = model(images)
+        loss = criterion(outputs, labels)
+        loss.backward()
+        optimizer.step()
+\end{code}
+\end{frame}
+\section{Transfer Learning}
+
+\begin{frame}[c]{Motivação para Transfer Learning}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Por que Transfer Learning?}
+            \begin{itemize}
+                \item \highlight{Camadas iniciais} aprendem features genéricas
+                \begin{itemize}
+                    \item Bordas, texturas, formas
+                    \item Úteis para várias tarefas
+                \end{itemize}
+                \item \highlight{Camadas finais} são específicas da tarefa
+                \item Treinar do zero é caro:
+                \begin{itemize}
+                    \item ImageNet: 1.2M imagens
+                    \item Semanas de GPU
+                    \item Ajuste de hiperparâmetros
+                \end{itemize}
+            \end{itemize}
+            
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Vanishing Gradient:}
+            $$\frac{\partial L}{\partial w_1} = \frac{\partial L}{\partial a_n} \prod_{i=2}^{n} \frac{\partial a_i}{\partial a_{i-1}}$$
+            
+            Gradientes diminuem exponencialmente!
+            \begin{tikzpicture}[scale=0.8]
+                % Feature hierarchy
+                \node at (2,5) {\textbf{Hierarquia de Features}};
+                
+                % Layer 1
+                \draw[fill=nes_dark_orange!20] (0,4) rectangle (4,3.5);
+                \node at (2,3.75) {Camada 1: Bordas};
+                
+                % Layer 2
+                \draw[fill=nes_dark_orange!30] (0,3) rectangle (4,2.5);
+                \node at (2,2.75) {Camada 2: Texturas};
+                
+                % Layer 3
+                \draw[fill=nes_dark_orange!40] (0,2) rectangle (4,1.5);
+                \node at (2,1.75) {Camada 3: Partes};
+                
+                % Layer 4
+                \draw[fill=nes_dark_purple!30] (0,1) rectangle (4,0.5);
+                \node at (2,0.75) {Camada 4: Objetos};
+                
+                % Arrow generic
+                \draw[<->, ultra thick, nes_dark_orange] (4.5,4) -- (4.5,2);
+                \node[right] at (4.5,3) {\small \color{nes_dark_orange}Genérico};
+                
+                % Arrow specific
+                \draw[<->, ultra thick, nes_dark_purple] (4.5,2) -- (4.5,0.5);
+                \node[right] at (4.5,1.25) {\small \color{nes_dark_purple}Específico};
+            \end{tikzpicture}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Estratégias de Transfer Learning}
+    \begin{center}
+        \begin{tikzpicture}[scale=0.9]
+            % Pre-trained network
+            \node at (0,4) {\textbf{Rede Pré-treinada (ex: ResNet-50)}};
+            
+            % Convolutional layers
+            \draw[fill=blue!20] (-3,2.5) rectangle (2,3);
+            \node at (-.5,2.75) {Camadas Convolucionais};
+            
+            % FC layers
+            \draw[fill=orange!20] (2.5,2.5) rectangle (4.5,3);
+            \node at (3.5,2.75) {FC};
+            
+            % Original output
+            \draw[fill=red!20] (5,2.5) rectangle (6,3);
+            \node at (5.5,2.75) {1000};
+            
+            % Strategies
+            \node at (-3,1.5) {\textbf{Estratégia 1:}};
+            \node at (-3,1) {\small Feature Extractor};
+            \draw[fill=blue!20, opacity=0.5] (-2,0.5) rectangle (2,0);
+            \draw[dashed] (-2,0.5) rectangle (2,0);
+            \node at (0,0.25) {\small \color{gray}Congelado};
+            \draw[fill=green!30] (2.5,0.5) rectangle (4.5,0);
+            \node at (3.5,0.25) {Nova FC};
+            
+            \node at (-3,-0.5) {\textbf{Estratégia 2:}};
+            \node at (-3,-1) {\small Fine-tuning};
+            \draw[fill=blue!30] (-2,-1.5) rectangle (2,-2);
+            \node at (0,-1.75) {\small Ajustável};
+            \draw[fill=green!30] (2.5,-1.5) rectangle (4.5,-2);
+            \node at (3.5,-1.75) {Nova FC};
+            
+            \node at (-3,-2.5) {\textbf{Estratégia 3:}};
+            \node at (-3,-3) {\small Full training};
+            \draw[fill=blue!40] (-2,-3.5) rectangle (2,-4);
+            \node at (0,-3.75) {\small Treinando tudo};
+            \draw[fill=green!30] (2.5,-3.5) rectangle (4.5,-4);
+            \node at (3.5,-3.75) {Nova FC};
+        \end{tikzpicture}
+    \end{center}
+    
+    \vspace{0.3cm}
+    \textbf{Exemplos Práticos:}
+    \begin{itemize}
+        \item \highlight{Q1}: ImageNet $\rightarrow$ Cães vs Gatos (100 imagens)
+        \item \highlight{Q3}: ImageNet $\rightarrow$ CIFAR-100 (50k imagens)
+        \item \highlight{Q4}: ImageNet $\rightarrow$ Imagens médicas (100k raios-X)
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[c]{Princípios do Fine-tuning}
+    \begin{columns}[c]
+        \begin{column}{0.55\textwidth}
+            \textbf{1. Taxa de Aprendizado Diferenciada}
+            \begin{itemize}
+                \item Camadas iniciais: $lr = 10^{-5}$
+                \item Camadas finais: $lr = 10^{-3}$
+                \item Evita ``catastrophic forgetting''
+            \end{itemize}
+            
+            \vspace{0.3cm}
+            \textbf{2. Descongelamento Gradual}
+            \begin{itemize}
+                \item Época 1-5: só treina FC
+                \item Época 6-10: descongela últimas convs
+                \item Época 11+: treina tudo
+            \end{itemize}
+            
+            \vspace{0.3cm}
+            \textbf{3. Regularização}
+            \begin{itemize}
+                \item Dropout mais agressivo (0.5 $\to$ 0.7)
+                \item Data augmentation pesada
+                \item Early stopping
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.45\textwidth}
+            \textbf{Fluxo de Fine-tuning:}
+            \begin{tikzpicture}[scale=0.7]
+                % Step 1
+                \node[draw, fill=yellow!20] (s1) at (0,4) {1. Carregar modelo};
+                
+                % Step 2
+                \node[draw, fill=yellow!20] (s2) at (0,2) {2. Substituir última camada};
+                
+                % Step 3
+                \node[draw, fill=yellow!20] (s3) at (0,0) {3. Congelar conv layers};
+                
+                % Step 4
+                \node[draw, fill=green!20] (s4) at (0,-2) {4. Treinar FC};
+                
+                % Step 5
+                \node[draw, fill=green!20] (s5) at (0,-4) {5. Descongelar gradual};
+                
+                % Step 6
+                \node[draw, fill=blue!20] (s6) at (0,-6) {6. Fine-tune completo};
+                
+                % Arrows
+                \foreach \i in {1,...,5} {
+                    \pgfmathtruncatemacro{\j}{\i+1}
+                    \draw[->, thick] (s\i) -- (s\j);
+                }
+            \end{tikzpicture}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c, fragile]{Implementação: Feature Extractor}
+\begin{code}[CNN Simples para MNIST]{python}
+import torch
+import torchvision.models as models
+
+# Carregar ResNet-18 pré-treinada
+resnet = models.resnet18(pretrained=True)
+
+# Congelar todos os parâmetros
+for param in resnet.parameters():
+    param.requires_grad = False
+
+# Substituir última camada (1000 -> 10 classes)
+num_features = resnet.fc.in_features
+resnet.fc = nn.Linear(num_features, 10)
+
+# Apenas a última camada será treinada
+trainable_params = sum(p.numel() for p in resnet.parameters() 
+                      if p.requires_grad)
+print(f"Parâmetros treináveis: {trainable_params}")  # 5,130
+\end{code}
+\end{frame}
+
+\begin{frame}[c, fragile]{Implementação: Feature Extractor}
+\begin{code}[CNN Simples para MNIST]{python}
+# Otimizador só para parâmetros treináveis
+optimizer = torch.optim.Adam(resnet.fc.parameters(), lr=0.001)
+
+# Treinar normalmente
+for epoch in range(10):
+    for inputs, labels in dataloader:
+        outputs = resnet(inputs)
+        loss = criterion(outputs, labels)
+        loss.backward()
+        optimizer.step()
+\end{code}
+\end{frame}
+
+\begin{frame}[c, fragile]{Implementação: Fine-tuning Gradual}
+\begin{code}[]{python}
+# Fine-tuning com descongelamento gradual
+def unfreeze_layers(model, layer_name):
+    """Descongela camadas a partir de layer_name"""
+    found = False
+    for name, param in model.named_parameters():
+        if layer_name in name:
+            found = True
+        if found:
+            param.requires_grad = True
+
+# Estratégia de descongelamento
+resnet = models.resnet18(pretrained=True)
+
+# Fase 1: Apenas FC (épocas 1-5)
+for param in resnet.parameters():
+    param.requires_grad = False
+resnet.fc = nn.Linear(resnet.fc.in_features, 10)
+optimizer = Adam(resnet.fc.parameters(), lr=1e-3)
+train_epochs(5)
+\end{code}
+\end{frame}
+
+\begin{frame}[c, fragile]{Implementação: Fine-tuning Gradual}
+\begin{code}[]{python}
+# Fase 2: Descongelar layer4 (épocas 6-10)
+unfreeze_layers(resnet, 'layer4')
+optimizer = Adam(filter(lambda p: p.requires_grad, 
+                       resnet.parameters()), lr=1e-4)
+train_epochs(5)
+
+# Fase 3: Treinar tudo (épocas 11-15)
+for param in resnet.parameters():
+    param.requires_grad = True
+optimizer = Adam(resnet.parameters(), lr=1e-5)
+train_epochs(5)
+\end{code}
+\end{frame}
+
+\begin{frame}[c, fragile]{Taxa de Aprendizado Diferenciada}
+\begin{code}[]{python}
+# Diferentes learning rates para diferentes camadas
+def get_parameter_groups(model):
+    """Agrupa parâmetros com diferentes LRs"""
+    params = []
+    
+    # Camadas iniciais - LR muito baixo
+    params.append({
+        'params': model.layer1.parameters(),
+        'lr': 1e-5
+    })
+    
+    # Camadas intermediárias - LR baixo
+    params.append({
+        'params': model.layer2.parameters(),
+        'lr': 5e-5
+    })
+    params.append({
+        'params': model.layer3.parameters(),
+        'lr': 1e-4
+    })
+    \end{code}
+\end{frame}
+
+\begin{frame}[c, fragile]{Taxa de Aprendizado Diferenciada}
+\begin{code}[]{python}  
+    # Camadas finais - LR normal
+    params.append({
+        'params': model.layer4.parameters(),
+        'lr': 5e-4
+    })
+    params.append({
+        'params': model.fc.parameters(),
+        'lr': 1e-3
+    })
+    
+    return params
+
+# Criar otimizador com grupos
+param_groups = get_parameter_groups(resnet)
+optimizer = Adam(param_groups)
+\end{code}
+\end{frame}
+
+\begin{frame}[c]{Modelos Pré-treinados Populares (2025)}
+    \begin{center}
+        \small
+        \begin{tabular}{|l|c|c|c|c|}
+            \hline
+            \textbf{Modelo} & \textbf{Ano} & \textbf{Parâmetros} & \textbf{Top-1 Acc} & \textbf{Uso} \\
+            \hline
+            \hline
+            AlexNet & 2012 & 61M & 56.1\% & Histórico \\
+            \hline
+            VGG-16 & 2014 & 138M & 71.5\% & Segmentação \\
+            \hline
+            ResNet-50 & 2015 & 25M & 76.1\% & \highlight{Padrão} \\
+            \hline
+            MobileNet V3 & 2019 & 5.4M & 75.2\% & Mobile \\
+            \hline
+            EfficientNet-B7 & 2019 & 66M & 84.3\% & SOTA CNN \\
+            \hline
+            Vision Transformer & 2020 & 86M & 85.8\% & Trending \\
+            \hline
+            ConvNeXt & 2022 & 89M & 87.8\% & \highlight{Moderna} \\
+            \hline
+            DINOv2 & 2023 & 1B & 88.3\% & Self-supervised \\
+            \hline
+            EVA-02 & 2024 & 1B & 90.1\% & SOTA atual \\
+            \hline
+        \end{tabular}
+    \end{center}
+    
+    \vspace{0.3cm}
+    \textbf{Observações:}
+    \begin{itemize}
+        \item ResNet-50 ainda é excelente para transfer learning
+        \item EfficientNet oferece melhor trade-off tamanho/performance
+        \item Vision Transformers dominam benchmarks mas precisam mais dados
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[c]{Aplicações Práticas de Transfer Learning}
+    \vspace{.5cm}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Medicina:}
+            \begin{itemize}
+                \item Detecção de câncer em mamografias
+                \item COVID-19 em raios-X
+                \item Retinopatia diabética
+                \item Base: ImageNet $\to$ Fine-tune médico
+            \end{itemize}
+            
+            \textbf{Agricultura:}
+            \begin{itemize}
+                \item Identificação de pragas
+                \item Estimativa de colheita
+                \item Análise de solo via drone
+                \item Base: ImageNet $\to$ Dados agrícolas
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Indústria:}
+            \begin{itemize}
+                \item Detecção de defeitos
+                \item Controle de qualidade
+                \item Manutenção preditiva
+                \item Base: ImageNet $\to$ Imagens industriais
+            \end{itemize}
+            
+            \textbf{Varejo/E-commerce:}
+            \begin{itemize}
+                \item Busca visual de produtos
+                \item Classificação automática
+                \item Detecção de falsificações
+                \item Base: Fashion-MNIST $\to$ Catálogo
+            \end{itemize}
+        \end{column}
+    \end{columns}
+    \begin{attention}[Sucesso do Transfer Learning]
+        \centering
+        \highlight{90\% das aplicações} de visão computacional em produção usam transfer learning!
+    \end{attention}
+\end{frame}
+
+\begin{frame}[c]{Comparação: Treinar do Zero vs Transfer Learning}
+    \begin{center}
+        \begin{tikzpicture}[scale=0.9]
+            % Axes
+            \draw[->] (0,0) -- (8,0) node[right] {Épocas};
+            \draw[->] (0,0) -- (0,4) node[above] {Acurácia (\%)};
+            
+            % Grid
+            \foreach \x in {1,...,7} {
+                \draw[gray, very thin] (\x,0) -- (\x,3.5);
+            }
+            \foreach \y in {1,...,3} {
+                \draw[gray, very thin] (0,\y) -- (7,\y);
+            }
+            
+            % Labels
+            \foreach \x in {1,...,7} {
+                \node[below] at (\x,0) {\x 0};
+            }
+            \node[left] at (0,1) {70};
+            \node[left] at (0,2) {80};
+            \node[left] at (0,3) {90};
+            
+            % From scratch curve
+            \draw[ultra thick, red] (0,0.2) .. controls (2,0.8) and (4,1.5) .. (7,2.3);
+            \node[red, right] at (7,2.3) {Do zero: 83\%};
+            
+            % Transfer learning curve
+            \draw[ultra thick, blue] (0,1.8) .. controls (1,2.3) and (3,2.7) .. (7,3.2);
+            \node[blue, right] at (7,3.2) {Transfer: 92\%};
+            
+            % Legend
+            \draw[ultra thick, red] (1,3.5) -- (2,3.5);
+            \node[right] at (2,3.5) {\small Treinar do zero};
+            \draw[ultra thick, blue] (4,3.5) -- (5,3.5);
+            \node[right] at (5,3.5) {\small Transfer Learning};
+        \end{tikzpicture}
+    \end{center}
+    
+    \vspace{0.3cm}
+    \begin{columns}[t]
+        \begin{column}{0.5\textwidth}
+            \textbf{Treinar do Zero:}
+            \begin{itemize}
+                \item Precisa $\sim$100k imagens
+                \item 100+ épocas
+                \item Convergência lenta
+                \item GPU por dias/semanas
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Transfer Learning:}
+            \begin{itemize}
+                \item Funciona com $\sim$1k imagens
+                \item 10-30 épocas
+                \item \highlight{Começa em 70-80\%}
+                \item Horas de GPU
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Exemplo Completo: Cães vs Gatos}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Dataset:}
+            \begin{itemize}
+                \item 25.000 imagens (Kaggle)
+                \item 12.500 cães / 12.500 gatos
+                \item Split: 80/10/10
+            \end{itemize}
+            
+            \vspace{0.3cm}
+            \textbf{Resultados:}
+            \begin{itemize}
+                \item \highlight{Do zero}: 78\% (200 épocas)
+                \item \highlight{VGG-16 frozen}: 92\% (10 épocas)
+                \item \highlight{ResNet-50 fine-tune}: 97\% (25 épocas)
+                \item \highlight{EfficientNet-B0}: 98.5\% (20 épocas)
+            \end{itemize}
+            
+            \vspace{0.3cm}
+            \textbf{Tempo de treino (RTX 4090):}
+            \begin{itemize}
+                \item Do zero: 8 horas
+                \item Transfer: 30 minutos
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Pipeline Completo:}
+            \begin{tikzpicture}[scale=0.6]
+                % Data Aug
+                \node[draw, fill=yellow!20] (aug) at (0,4) {Data Augmentation};
+                
+                % Pretrained
+                \node[draw, fill=blue!20] (pre) at (0,2.5) {ResNet-50 (ImageNet)};
+                
+                % Replace FC
+                \node[draw, fill=green!20] (fc) at (0,1) {FC: 2048 $\to$ 2};
+                
+                % Train
+                \node[draw, fill=orange!20] (train) at (0,-0.5) {Adam, lr=1e-4};
+                
+                % Result
+                \node[draw, fill=red!20] (res) at (0,-2) {97\% accuracy};
+                
+                % Arrows
+                \draw[->, thick] (aug) -- (pre);
+                \draw[->, thick] (pre) -- (fc);
+                \draw[->, thick] (fc) -- (train);
+                \draw[->, thick] (train) -- (res);
+            \end{tikzpicture}
+            
+            \vspace{0.3cm}
+            \textbf{Matriz de Confusão:}
+            \begin{center}
+                \begin{tabular}{|c|c|c|}
+                    \hline
+                    & Cão & Gato \\
+                    \hline
+                    Cão & \highlight{97.2\%} & 2.8\% \\
+                    \hline
+                    Gato & 3.1\% & \highlight{96.9\%} \\
+                    \hline
+                \end{tabular}
+            \end{center}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[c]{Tendências e Futuro}
+    \vspace{0.2cm}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{Foundation Models:}
+            \begin{itemize}
+                \item CLIP (texto + imagem)
+                \item DINO (self-supervised)
+                \item SAM (Segment Anything)
+                \item Transfer learning multimodal
+            \end{itemize}
+            
+            % \vspace{0.3cm}
+            \textbf{Efficient Transfer:}
+            \begin{itemize}
+                \item LoRA (Low-Rank Adaptation)
+                \item Adapter layers
+                \item Prompt tuning visual
+                \item Parameter-efficient fine-tuning
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Novos Paradigmas:}
+            \begin{itemize}
+                \item \highlight{Zero-shot}: sem fine-tuning!
+                \item \highlight{Few-shot}: 5-10 exemplos
+                \item \highlight{Cross-domain}: médico $\to$ industrial
+                \item \highlight{Continual learning}: sem esquecer
+            \end{itemize}
+            
+            % \vspace{0.3cm}
+            \textbf{Aplicações Emergentes:}
+            \begin{itemize}
+                \item Visão 3D (NeRFs)
+                \item Vídeo understanding
+                \item Robótica embodied AI
+                \item AR/VR em tempo real
+            \end{itemize}
+        \end{column}
+    \end{columns}
+    
+    \begin{attention}[Mensagem Final]
+        \centering
+        \textbf{Transfer Learning democratizou Deep Learning:} qualquer um pode criar modelos state-of-the-art com recursos limitados!
+    \end{attention}
+\end{frame}
+
+\begin{frame}[c]{Resumo da Aula}
+    \vspace{0.5cm}
+    \begin{columns}[c]
+        \begin{column}{0.5\textwidth}
+            \textbf{CNNs:}
+            \begin{itemize}
+                \item Convoluções preservam localidade
+                \item Compartilhamento de pesos
+                \item Pooling reduz dimensões
+                \item Hierarquia de features
+                \item LeNet-5: 61k parâmetros
+            \end{itemize}
+            
+            % \vspace{0.3cm}
+            \textbf{Conceitos-Chave:}
+            \begin{itemize}
+                \item Stride e padding
+                \item Cálculo de dimensões
+                \item Receptive field
+                \item Feature maps
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{Transfer Learning:}
+            \begin{itemize}
+                \item Features genéricas vs específicas
+                \item Feature extraction vs fine-tuning
+                \item Descongelamento gradual
+                \item Learning rate diferenciada
+                \item 10-100x mais rápido!
+            \end{itemize}
+            
+            % \vspace{0.3cm}
+            \textbf{Na Prática:}
+            \begin{itemize}
+                \item Use modelos pré-treinados
+                \item Comece com feature extraction
+                \item Fine-tune se tiver dados
+                \item PyTorch/TensorFlow facilitam
+            \end{itemize}
+        \end{column}
+    \end{columns}
+    
+    % \vspace{0.5cm}
+    \begin{center}
+        \large
+        \highlight{Próxima aula: Arquiteturas Modernas de CNNs (ResNet, Transformers)}
+    \end{center}
+\end{frame}
+
+\begin{frame}[c]{Material Complementar e Exercícios}
+    \textbf{Leitura Recomendada:}
+    \begin{itemize}
+        \item Paper original LeNet-5 (LeCun et al., 1998)
+        \item ``Deep Learning'' - Goodfellow, Cap. 9
+        \item CS231n Stanford - Lecture Notes
+        \item Papers With Code - Transfer Learning
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[c, noframenumbering, plain]
+    \frametitle{~}
+    \vfill
+    \begin{center}
+        {\Huge Obrigado!}\vspace{1.5em}\\
+        {\Large \highlight{Dúvidas?}}\\
+    \end{center}
+    \vfill
+    \begin{center}
+        {\small Próxima aula: 22/10/2025}\\
+        {\small Tema: Arquiteturas Modernas de CNNs}
+    \end{center}
+\end{frame}
+
+\end{document}

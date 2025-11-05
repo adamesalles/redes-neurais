@@ -1,0 +1,842 @@
+\documentclass[xcolor=dvipsnames,t,aspectratio=169]{beamer}
+
+\usecolortheme{rose}
+\usecolortheme{dolphin}
+\usetheme{Boadilla}
+
+\input{../../templates/slides/imports}
+\input{../../templates/slides/settings}
+\input{../../templates/slides/commands}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, shapes, positioning, calc}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{multicol}
+
+% Configuração para código Python
+\lstset{
+    language=Python,
+    basicstyle=\tiny\ttfamily,
+    keywordstyle=\color{blue},
+    commentstyle=\color{green!60!black},
+    stringstyle=\color{orange},
+    showstringspaces=false,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray}
+}
+
+\titlegraphic{
+    \includegraphics[scale = 0.5]{../../templates/slides/logo}
+}
+
+\logo{
+\begin{tikzpicture}[overlay,remember picture]
+\node[below left = 0.2cm] at (current page.30) {
+    \includegraphics[width=0.1\textwidth]{../../templates/slides/logo}};
+\end{tikzpicture}
+}
+
+\newcommand{\highlight}[1]{{\color{nes_dark_orange} #1}}
+
+\title{Arquiteturas de Redes Neurais Convolucionais} 
+
+\author{
+    Eduardo Adame
+}
+
+\date{{\color{nes_dark_purple}  \textbf{Redes Neurais}\\[0.5em] 22 de outubro de 2025 }}
+
+
+\begin{document}
+
+\frame[plain]{\titlepage}
+\setcounter{framenumber}{0}
+
+\begin{frame}[c]
+\begin{itemize}
+    \item \textbf{Objetivo}: Compreender a evolução das arquiteturas CNN
+    \item \textbf{Marcos históricos}: AlexNet, VGG, Inception, ResNet
+    \item \textbf{Tendências atuais}: Vision Transformers e arquiteturas híbridas
+    \item \textbf{Aplicações práticas}: Como escolher a arquitetura adequada
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{AlexNet (2012): O Marco Inicial}
+
+\textbf{Contexto Histórico}
+\begin{itemize}
+    \item Criada para o ImageNet Large Scale Visual Recognition Challenge (ILSVRC)
+    \item \textbf{Tarefa}: Classificar entre 1000 classes
+    \item \textbf{Dataset}: Aproximadamente 1,2 milhão de imagens
+    \item Considerada o "ponto de ignição" do deep learning moderno
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{Resultados Revolucionários}
+\begin{itemize}
+    \item \highlight{Top-5 error rate: 15,4\%}
+    \item Segundo colocado: 26,2\%
+    \item \textbf{Diferença de mais de 10\%} - resultado devastador
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{Por que foi tão importante?}
+\begin{itemize}
+    \item Primeira demonstração clara do poder das CNNs profundas
+    \item Uso de GPUs para acelerar o treinamento
+    \item Popularizou técnicas como ReLU e Dropout
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Arquitetura da AlexNet}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=.7\textwidth]{alexNet-architecture-2135888065.png}
+\end{figure}
+
+\textbf{Características Principais}
+\begin{itemize}
+    \item \textbf{8 camadas}: 5 convolucionais + 3 totalmente conectadas
+    \item \textbf{60 milhões de parâmetros}
+    \item \textbf{Data augmentation}: Rotação, espelhamento, crops aleatórios
+    \item \textbf{Dropout}: Regularização nas camadas FC
+    \item \textbf{ReLU}: Primeira aplicação em larga escala
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c, fragile]
+\frametitle{Template Básico da AlexNet}
+
+\begin{code}[Implementação Simplificada]{python}
+model = Sequential([
+    Conv2D(96, (11,11), strides=4, activation='relu'),
+    MaxPooling2D((3,3), strides=2),
+    Conv2D(256, (5,5), activation='relu'),
+    MaxPooling2D((3,3), strides=2),
+    Conv2D(384, (3,3), activation='relu'),
+    Conv2D(384, (3,3), activation='relu'),
+    Conv2D(256, (3,3), activation='relu'),
+    MaxPooling2D((3,3), strides=2),
+    Flatten(),
+    Dense(4096, activation='relu'),
+    Dropout(0.5),
+    Dense(4096, activation='relu'),
+    Dropout(0.5),
+    Dense(1000, activation='softmax')
+])
+\end{code}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{VGG (2014): Simplicidade e Profundidade}
+
+\textbf{Filosofia de Design}
+\begin{itemize}
+    \item \textbf{Simplificar a estrutura da rede}
+    \item \textbf{Evitar escolhas manuais} do tamanho de convolução
+    \item \textbf{Redes muito profundas} com convoluções 3$\times$3
+    \item Convoluções menores \textbf{"simulam" convoluções maiores}
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{Insight Principal: Campo Receptivo}
+\begin{center}
+\begin{tikzpicture}[scale=0.6]
+    % Layer 1
+    \draw[step=0.3] (0,0) grid (2.1,2.1);
+    \node at (1.05,-0.3) {\footnotesize Camada 1};
+    
+    % Highlight 3x3 region
+    \draw[thick, red] (0.3,0.3) rectangle (1.2,1.2);
+    
+    % Arrow
+    \draw[->, thick] (2.3,1.05) -- (2.7,1.05);
+    
+    % Layer 2
+    \draw[step=0.3] (3,0) grid (5.1,2.1);
+    \node at (4.05,-0.3) {\footnotesize Camada 2};
+    
+    % Highlight single cell
+    \fill[blue!30] (3.6,0.9) rectangle (3.9,1.2);
+    
+    % Arrow
+    \draw[->, thick] (5.3,1.05) -- (5.7,1.05);
+    
+    % Layer 3
+    \draw[step=0.3] (6,0) grid (8.1,2.1);
+    \node at (7.05,-0.3) {\footnotesize Camada 3};
+    
+    % Show 5x5 receptive field
+    \draw[thick, blue] (6.0,0.6) rectangle (7.5,2.1);
+    \node at (6.75,2.4) {\footnotesize Campo 5$\times$5};
+\end{tikzpicture}
+\end{center}
+
+Duas convoluções 3$\times$3 consecutivas = Uma convolução 5$\times$5
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{VGG: Vantagem dos Filtros Pequenos}
+
+\textbf{Comparação de Parâmetros}
+
+\begin{columns}
+\begin{column}{0.5\textwidth}
+\textbf{Uma camada 7$\times$7}
+\begin{align}
+\text{Parâmetros} &= 7 \times 7 \times C \times C\\
+&= 49C^2
+\end{align}
+\end{column}
+
+\begin{column}{0.5\textwidth}
+\textbf{Três camadas 3$\times$3}
+\begin{align}
+\text{Parâmetros} &= 3 \times (3 \times 3 \times C \times C)\\
+&= 27C^2
+\end{align}
+\end{column}
+\end{columns}
+
+\begin{attention}[Redução de Parâmetros]
+\begin{center}
+$49C^2 \rightarrow 27C^2 \approx \textbf{45\% de redução!}$
+\end{center}
+\end{attention}
+
+\textbf{Vantagens Adicionais}
+\begin{itemize}
+    \item \textbf{Mais não-linearidades}: 3 ReLUs vs 1 ReLU
+    \item \textbf{Maior expressividade}: Função mais complexa
+    \item \textbf{Melhor gradiente}: Propagação mais eficiente
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Arquitetura VGG16}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.7\textwidth]{vgg16-1739283886.png}
+\end{figure}
+
+\textbf{Padrão de Arquitetura}
+\begin{itemize}
+    \item \textbf{Duplicação progressiva}: 64 $\to$ 128 $\to$ 256 $\to$ 512 $\to$ 512
+    \item \textbf{Redução espacial}: MaxPooling 2$\times$2 após cada bloco
+    \item \textbf{16 camadas com pesos}: 13 conv + 3 FC
+    \item \textbf{138 milhões de parâmetros}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Legado da VGG}
+
+\textbf{Contribuições Principais}
+\begin{itemize}
+    \item \textbf{Primeira arquitetura} a experimentar com muitas camadas
+    \item \textbf{Filosofia}: "Mais profundo é melhor"
+    \item \textbf{Padronização}: Uso consistente de filtros 3$\times$3
+    \item \textbf{Modelo base}: Serviu como backbone para trabalhos futuros
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{Limitações}
+\begin{itemize}
+    \item \textbf{Muito pesada}: 138M parâmetros, arquivo de 500MB+
+    \item \textbf{Lenta}: Muitas operações nas camadas FC
+    \item \textbf{Consumo de memória}: Mapas de características grandes
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{Influência Atual}
+\begin{itemize}
+    \item Backbone em detecção de objetos (Faster R-CNN, etc.)
+    \item Base para transfer learning
+    \item Inspiração para arquiteturas modernas
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Inception (GoogLeNet, 2014): Pensando Diferente}
+
+\textbf{Motivação}
+\begin{itemize}
+    \item \textbf{Problema}: Qual tamanho de filtro usar? 1$\times$1, 3$\times$3, 5$\times$5?
+    \item \textbf{Insight}: Por que não usar \textit{todos}?
+    \item \textbf{Eficiência computacional}: Como manter baixo custo?
+    \item \textbf{Principio Hebbiano}: "Neurônios que disparam juntos, se conectam"
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{Solução: Módulos Inception}
+\begin{itemize}
+    \item \textbf{Ramificação paralela}: Diferentes operações simultâneas
+    \item \textbf{Concatenação}: Combinar todas as saídas
+    \item \textbf{1$\times$1 convoluções}: Redução de dimensionalidade
+    \item \textbf{Especialização}: Cada ramo processa uma porção do trabalho
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Módulo Inception: Versão Ingênua}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.7\textwidth]{image.png}
+\end{figure}
+
+\textbf{Problema}: Muitas operações caras!
+\begin{itemize}
+    \item Convoluções 3$\times$3 e 5$\times$5 são computacionalmente intensivas
+    \item Número de canais cresce rapidamente
+    \item Explosão de parâmetros
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Inception com Gargalos 1$\times$1}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.7\textwidth]{image2.png}
+\end{figure}
+
+\textbf{Vantagens dos Gargalos 1$\times$1}
+\begin{itemize}
+    \item \textbf{Redução de canais}: Antes das operações caras
+    \item \textbf{Menos parâmetros}: Significativa economia computacional
+    \item \textbf{Não-linearidade extra}: ReLU após cada 1$\times$1
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Evolução do Inception}
+
+\begin{multicols}{2}
+
+\textbf{Inception v1 (GoogLeNet, 2014)}
+\begin{itemize}
+    \item Módulos básicos com gargalos 1$\times$1
+    \item 22 camadas, apenas 5M parâmetros
+    \item Saídas auxiliares para treinamento
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Inception v2/v3 (2015-2016)}
+\begin{itemize}
+    \item \textbf{Factorização}: 5$\times$5 $\to$ duas 3$\times$3; 3$\times$3 $\to$ 1$\times$3 + 3$\times$1
+    \item \textbf{Batch Normalization}: Acelera convergência
+    \item \textbf{Label smoothing}: Regularização no treinamento
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Inception v4 e Inception-ResNet (2016)}
+\begin{itemize}
+    \item Arquitetura mais uniforme e simples
+    \item Combinação com conexões residuais
+    \item Estado da arte até 2017
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Xception (2017)}
+\begin{itemize}
+    \item Separable convolutions: Espacial + Canal
+    \item Ainda mais eficiente que Inception v3
+\end{itemize}
+
+\end{multicols}
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{ResNet (2015): Resolvendo o Problema da Profundidade}
+
+\textbf{O Problema Observado}
+
+\begin{columns}
+\begin{column}{0.5\textwidth}
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=0.6]
+    \draw[->] (0,0) -- (0,4);
+    \draw[->] (0,0) -- (4,0);
+    \node at (-0.3,4.5) {\footnotesize Erro};
+    \node at (4,-0.5) {\footnotesize Época};
+    
+    % 20-layer network
+    \draw[thick, green] (0.5,3.5) .. controls (1,2.5) and (2,1.5) .. (3.5,1);
+    \node at (3.7,0.9) {\footnotesize 20 camadas};
+    
+    % 56-layer network
+    \draw[thick, red] (0.5,3.8) .. controls (1,3) and (2,2.5) .. (3.5,2);
+    \node at (3.7,1.9) {\footnotesize 56 camadas};
+\end{tikzpicture}
+\end{figure}
+\end{column}
+
+\begin{column}{0.5\textwidth}
+\textbf{Observação Surpreendente}
+\begin{itemize}
+    \item Redes mais profundas performam \textit{pior}
+    \item Tanto em treino quanto em teste
+    \item Não é overfitting!
+    \item Problema de otimização
+\end{itemize}
+\end{column}
+\end{columns}
+
+\vspace{0.5cm}
+
+\textbf{Diagnóstico}
+\begin{itemize}
+    \item \textbf{Desvanecimento de gradiente}: Camadas iniciais param de aprender
+    \item \textbf{Degradação}: Performance satura e depois decai
+    \item \textbf{Dificuldade de otimização}: Funções de identidade são difíceis de aprender
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{A Solução ResNet: Conexões Residuais}
+
+\begin{columns}
+\begin{column}{0.5\textwidth}
+\textbf{Bloco Tradicional}
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=0.8]
+    \draw[fill=blue!20] (0,0) rectangle (2,0.5);
+    \node at (1,0.25) {\footnotesize $x$};
+    
+    \draw[fill=orange!30] (0,1) rectangle (2,1.5);
+    \node at (1,1.25) {\footnotesize Weight Lyr};
+    
+    \draw[fill=orange!30] (0,2) rectangle (2,2.5);
+    \node at (1,2.25) {\footnotesize Weight Lyr};
+    
+    \draw[fill=green!20] (0,3) rectangle (2,3.5);
+    \node at (1,3.25) {\footnotesize $\mathcal{H}(x)$};
+    
+    \draw[->, thick] (1,0.5) -- (1,1);
+    \draw[->, thick] (1,1.5) -- (1,2);
+    \draw[->, thick] (1,2.5) -- (1,3);
+\end{tikzpicture}
+\end{figure}
+
+Aprende: $\mathcal{H}(x)$
+\end{column}
+
+\begin{column}{0.5\textwidth}
+\textbf{Bloco Residual}
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=0.8]
+    \draw[fill=blue!20] (0,0) rectangle (2,0.5);
+    \node at (1,0.25) {\footnotesize $x$};
+    
+    \draw[fill=orange!30] (0,1) rectangle (2,1.5);
+    \node at (1,1.25) {\footnotesize Weight Lyr};
+    
+    \draw[fill=orange!30] (0,2) rectangle (2,2.5);
+    \node at (1,2.25) {\footnotesize Weight Lyr};
+    
+    % Addition
+    \draw[circle, fill=white] (1,3.25) circle (0.2);
+    \node at (1,3.25) {\footnotesize +};
+    
+    \draw[fill=green!20] (0,3.8) rectangle (2,4.3);
+    \node at (1,4.05) {\footnotesize $\mathcal{H}(x)$};
+    
+    \draw[->, thick] (1,0.5) -- (1,1);
+    \draw[->, thick] (1,1.5) -- (1,2);
+    \draw[->, thick] (1,2.5) -- (1,3.05);
+    \draw[->, thick] (1,3.45) -- (1,3.8);
+    
+    % Skip connection
+    \draw[->, thick] (0.2,0.25) -- (-0.5,0.25) -- (-0.5,3.25) -- (0.8,3.25);
+\end{tikzpicture}
+\end{figure}
+
+Aprende: $\mathcal{F}(x) = \mathcal{H}(x) - x$
+\end{column}
+\end{columns}
+
+\vspace{0.5cm}
+
+\textbf{Insight Chave}
+\begin{itemize}
+    \item \textbf{Função residual}: $\mathcal{F}(x)$ é mais fácil de aprender que $\mathcal{H}(x)$
+    \item \textbf{Identidade}: Se a melhor função é identidade, $\mathcal{F}(x) = 0$
+    \item \textbf{Gradientes}: Fluxo direto através das skip connections
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Blocos ResNet em Detalhes}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.7\textwidth]{image3.png}
+\end{figure}
+
+\textbf{Bottleneck Design}
+\begin{itemize}
+    \item \textbf{1$\times$1 $\to$ 3$\times$3 $\to$ 1$\times$1}: Reduz complexidade computacional
+    \item \textbf{Menos parâmetros}: Para redes muito profundas (50+ camadas)
+    \item \textbf{Eficiência}: Mantém expressividade com menor custo
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Família ResNet e Impacto}
+
+\textbf{Variantes Principais}
+\begin{itemize}
+    \item \textbf{ResNet-18/34}: Blocos básicos, até 34 camadas
+    \item \textbf{ResNet-50/101/152}: Blocos bottleneck, até 152 camadas
+    \item \textbf{ResNet-200+}: Experimentos com redes extremamente profundas
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{Resultados no ImageNet (2015)}
+\begin{itemize}
+    \item \textbf{ResNet-152}: 3.57\% top-5 error (melhor que humanos!)
+    \item \textbf{Primeiro a superar performance humana} em ImageNet
+    \item \textbf{Vencedor}: ILSVRC 2015 Classification, Detection, Localization
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{Impacto Transformador}
+\begin{itemize}
+    \item \textbf{Arquitetura padrão}: Backbone em quase todos os modelos
+    \item \textbf{Transfer learning}: Base para inúmeras aplicações
+    \item \textbf{Conceito residual}: Adoptado em Transformers, GAN, etc.
+    \item \textbf{Possibilitou redes profundas}: 1000+ camadas funcionais
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Evoluções Pós-ResNet (2016-2018)}
+
+\textbf{DenseNet (2017)}
+\begin{itemize}
+    \item \textbf{Conexões densas}: Cada camada conecta a todas as anteriores
+    \item \textbf{Reutilização de features}: Máximo aproveitamento de informação
+    \item \textbf{Menos parâmetros}: Mais eficiente que ResNet
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{MobileNets (2017-2019)}
+\begin{itemize}
+    \item \textbf{Depthwise Separable Convolutions}: Factorização espacial/canal
+    \item \textbf{Dispositivos móveis}: Otimizado para baixo consumo
+    \item \textbf{MobileNetV2}: Inverted residuals + linear bottlenecks
+    \item \textbf{MobileNetV3}: Neural Architecture Search + squeeze-excitation
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{EfficientNet (2019)}
+\begin{itemize}
+    \item \textbf{Compound scaling}: Balancea width, depth, resolution
+    \item \textbf{Neural Architecture Search}: Busca automatizada de arquiteturas
+    \item \textbf{Estado da arte}: Melhor trade-off precisão/eficiência
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Revolução dos Vision Transformers (2020-2025)}
+
+\textbf{Vision Transformer (ViT) - 2021}
+\begin{itemize}
+    \item \textbf{Patches como tokens}: Divide imagem em patches 16$\times$16
+    \item \textbf{Self-attention}: Mecanismo dos Transformers para visão
+    \item \textbf{Sem convoluções}: Primeira arquitetura puramente attention-based
+    \item \textbf{Escalabilidade}: Performa melhor com datasets muito grandes
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Arquiteturas Híbridas}
+\begin{itemize}
+    \item \textbf{ConvNet}: CNN early layers + Transformer later layers
+    \item \textbf{Swin Transformer}: Attention hierárquico com janelas
+    \item \textbf{CoAtNet}: Combinação otimizada de Conv + Attention
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Estado Atual (2025)}
+\begin{itemize}
+    \item \textbf{ConvNext}: CNNs modernizadas competem com ViTs
+    \item \textbf{Foundation models}: CLIP, DALL-E, modelos multimodais
+    \item \textbf{Trend}: Arquiteturas que combinam o melhor dos dois mundos
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Comparativo de Arquiteturas}
+
+\begin{table}[h]
+\centering
+\footnotesize
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\textbf{Arquitetura} & \textbf{Ano} & \textbf{Parâmetros} & \textbf{ImageNet Top-1} & \textbf{Inovação Principal} \\
+\hline
+AlexNet & 2012 & 60M & 42.9\% & CNNs profundas + GPU \\
+\hline
+VGG-16 & 2014 & 138M & 28.1\% & Filtros 3$\times$3 uniformes \\
+\hline
+Inception v3 & 2016 & 24M & 21.2\% & Módulos paralelos \\
+\hline
+ResNet-50 & 2015 & 26M & 20.7\% & Skip connections \\
+\hline
+ResNet-152 & 2015 & 60M & 19.4\% & Redes muito profundas \\
+\hline
+DenseNet-201 & 2017 & 20M & 18.1\% & Conexões densas \\
+\hline
+EfficientNet-B7 & 2019 & 66M & 15.7\% & Compound scaling \\
+\hline
+ViT-Large & 2021 & 307M & 16.4\% & Pure attention \\
+\hline
+ConvNext-XL & 2022 & 350M & 13.9\% & CNNs modernizadas \\
+\hline
+\end{tabular}
+\end{table}
+
+\vspace{0.3cm}
+
+\textbf{Observações}
+\begin{itemize}
+    \item \textbf{Evolução contínua}: Cada arquitetura trouxe insights únicos
+    \item \textbf{Trade-offs}: Precisão vs eficiência vs interpretabilidade
+    \item \textbf{Especialização}: Diferentes arquiteturas para diferentes tarefas
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Como Escolher uma Arquitetura?}
+
+\textbf{Fatores de Decisão}
+
+\begin{columns}
+\begin{column}{0.5\textwidth}
+\textbf{Recursos Disponíveis}
+\begin{itemize}
+    \item \textbf{Poder computacional}
+    \item \textbf{Memória GPU/RAM}
+    \item \textbf{Tempo de treinamento}
+    \item \textbf{Latência de inferência}
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Natureza dos Dados}
+\begin{itemize}
+    \item \textbf{Tamanho do dataset}
+    \item \textbf{Resolução das imagens}
+    \item \textbf{Número de classes}
+    \item \textbf{Complexidade visual}
+\end{itemize}
+\end{column}
+
+\begin{column}{0.5\textwidth}
+\textbf{Requisitos da Aplicação}
+\begin{itemize}
+    \item \textbf{Precisão necessária}
+    \item \textbf{Tempo real vs batch}
+    \item \textbf{Dispositivo alvo}
+    \item \textbf{Interpretabilidade}
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Estratégia de Desenvolvimento}
+\begin{itemize}
+    \item \textbf{Transfer learning}
+    \item \textbf{Fine-tuning}
+    \item \textbf{Treino do zero}
+    \item \textbf{Ensemble methods}
+\end{itemize}
+\end{column}
+\end{columns}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Recomendações por Cenário}
+
+\textbf{Projetos Iniciantes / Prototipagem}
+\begin{itemize}
+    \item \textbf{ResNet-18/34}: Equilibrio simplicidade/performance
+    \item \textbf{MobileNetV2}: Para dispositivos com restrições
+    \item \textbf{EfficientNet-B0}: Boa baseline moderna
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Aplicações de Produção}
+\begin{itemize}
+    \item \textbf{ResNet-50}: Padrão da indústria, muitos modelos pré-treinados
+    \item \textbf{EfficientNet-B3/B4}: Melhor custo-benefício
+    \item \textbf{ConvNext}: Para máxima precisão
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Pesquisa / Estado da Arte}
+\begin{itemize}
+    \item \textbf{ViT-Large}: Para datasets muito grandes
+    \item \textbf{Swin Transformer}: Tarefas hierárquicas (detecção, segmentação)
+    \item \textbf{Foundation models}: CLIP para multimodalidade
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c,fragile]
+\frametitle{Implementação Prática: ResNet Moderno}
+
+\begin{code}[ResNet-18 com Melhorias 2025]{python}
+class BasicBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, stride=1):
+        super().__init__()
+        self.conv1 = nn.Conv2d(in_channels, out_channels, 3, 
+                              stride=stride, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(out_channels)
+        self.conv2 = nn.Conv2d(out_channels, out_channels, 3, 
+                              padding=1, bias=False)
+        self.bn2 = nn.BatchNorm2d(out_channels)
+        self.skip = nn.Identity()
+        if stride != 1 or in_channels != out_channels:
+            self.skip = nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, 1, 
+                         stride=stride, bias=False),
+                nn.BatchNorm2d(out_channels)
+            )
+        self.relu = nn.ReLU(inplace=True)
+\end{code}
+\end{frame}  
+\begin{frame}[c,fragile]
+\frametitle{Implementação Prática: ResNet Moderno}
+
+\begin{code}[ResNet-18 com Melhorias 2025]{python}
+    def forward(self, x):
+        identity = self.skip(x)
+        
+        out = self.relu(self.bn1(self.conv1(x)))
+        out = self.bn2(self.conv2(out))
+        
+        out += identity
+        return self.relu(out)
+\end{code}
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Tendências Futuras em Arquiteturas CNN}
+
+\textbf{Direções de Pesquisa 2025+}
+
+\begin{itemize}
+    \item \textbf{Arquiteturas Neurais Buscadas (NAS)}
+        \begin{itemize}
+            \item Busca automatizada de arquiteturas otimizadas
+            \item Especialização para hardware específico
+            \item Consideração de multiple objetivos (precisão, latência, energia)
+        \end{itemize}
+    
+    \item \textbf{Modelos Foundation Multimodais}
+        \begin{itemize}
+            \item Integração visão + linguagem + audio
+            \item Transfer learning entre modalidades
+            \item Zero-shot learning aprimorado
+        \end{itemize}
+    
+    \item \textbf{Eficiência Energética}
+        \begin{itemize}
+            \item Green AI: redução da pegada de carbono
+            \item Quantização e pruning automáticos
+            \item Edge computing otimizado
+        \end{itemize}
+    
+    \item \textbf{Interpretabilidade}
+        \begin{itemize}
+            \item Arquiteturas inherentemente interpretáveis
+            \item Attention visualization melhorada
+            \item Debugging automático de modelos
+        \end{itemize}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c]
+\frametitle{Resumo e Conclusões}
+
+\textbf{Evolução das CNNs: Lições Aprendidas}
+
+\begin{itemize}
+    \item \textbf{AlexNet (2012)}: Provou o poder das CNNs profundas
+    \item \textbf{VGG (2014)}: Simplicidade e padronização são valiosas
+    \item \textbf{Inception (2014)}: Paralelização e eficiência computacional
+    \item \textbf{ResNet (2015)}: Skip connections resolvem problemas de otimização
+    \item \textbf{Era moderna}: Híbridos CNN+Transformer dominam
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Princípios Fundamentais}
+\begin{itemize}
+    \item \textbf{Não existe ``melhor'' arquitetura}: Depende do contexto
+    \item \textbf{Trade-offs são inevitáveis}: Precisão vs eficiência
+    \item \textbf{Transfer learning é essencial}: Aproveite modelos pré-treinados
+    \item \textbf{Experimente sistematicamente}: Dados empíricos são cruciais
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Próxima Aula}
+\begin{itemize}
+    \item \textbf{Tópico}: Técnicas Avançadas de Treinamento
+    \item \textbf{Conteúdo}: Otimizadores, regularização, data augmentation
+\end{itemize}
+
+\end{frame}
+
+\end{document}

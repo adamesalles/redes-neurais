@@ -23,6 +23,10 @@ Esse curso faz parte do Modulo IV do NES [Novo Ensino Suplementar](https://www.n
 | 5 | 10/09/25 | Regularização e Dropout | [Slides](semana05/slides/) \| [Exercícios](semana05/exercicios/) \| [Notas](semana05/notas/) |
 | AV1 | 17/09/25 | Enunciado da Avaliação 1 | [Documento](av1/enunciado.pdf) |
 | 6 | 24/09/25 | Intro. às CNNs | [Slides](semana06/slides/) \| [Exercícios](semana06/exercicios/) \| [Notas](semana06/notas/) |
+| AV1 | 01/10/25 | Apresentações da Avaliação 1 | ... |
+| 7 | 15/10/25 | ConvNets e Transfer Learning | [Slides](semana07/slides/) \| [Exercícios](semana07/exercicios/) |
+| 8 | 22/10/25 | Transfer Learning | [Slides](semana08/slides/) \| [Exercícios](semana08/exercicios/) |
+| 9 | 29/10/25 | Técnicas Avançadas (Data Aug.) | [Slides](semana09/slides/) \| [Exercícios](semana09/exercicios/) |
 
 ## 🎯 Objetivos do Curso
 
