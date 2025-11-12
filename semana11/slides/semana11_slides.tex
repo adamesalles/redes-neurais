@@ -1,0 +1,583 @@
+\documentclass[xcolor=dvipsnames,t,aspectratio=169]{beamer}
+
+\usecolortheme{rose}
+\usecolortheme{dolphin}
+\usetheme{Boadilla}
+
+\input{../../templates/slides/imports}
+\input{../../templates/slides/settings}
+\input{../../templates/slides/commands}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, shapes, positioning, calc}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{multicol}
+\usepackage{svg}
+
+% Configuração para código Python
+\lstset{
+    language=Python,
+    basicstyle=\tiny\ttfamily,
+    keywordstyle=\color{blue},
+    commentstyle=\color{green!60!black},
+    stringstyle=\color{orange},
+    showstringspaces=false,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray}
+}
+
+\titlegraphic{
+    \includegraphics[scale = 0.5]{../../templates/slides/logo}
+}
+
+\logo{
+\begin{tikzpicture}[overlay,remember picture]
+\node[below left = 0.2cm] at (current page.30) {
+    \includegraphics[width=0.1\textwidth]{../../templates/slides/logo}};
+\end{tikzpicture}
+}
+
+\newcommand{\highlight}[1]{{\color{nes_dark_orange} #1}}
+
+\title{Redes Neurais Recorrentes} 
+
+\author{
+    Eduardo Adame
+}
+
+\date{{\color{nes_dark_purple}  \textbf{Redes Neurais}\\[0.5em] 12 de novembro de 2025 }}
+
+
+\begin{document}
+
+\frame[plain]{\titlepage}
+\setcounter{framenumber}{0}
+
+
+\section{Motivação e Contexto}
+
+
+\begin{frame}[c]{O Desafio: Sequências de Comprimento Variável}
+
+\begin{itemize}
+    \item Com imagens, forçamos uma dimensão de entrada específica
+    \vspace{0.3cm}
+    \item Não é óbvio como fazer isso com texto ou outras sequências
+    \vspace{0.3cm}
+    \item \textbf{Exemplo:} Classificar tweets como positivos, negativos ou neutros
+    \vspace{0.3cm}
+    \item Tweets podem ter um número variável de palavras
+    \vspace{0.3cm}
+    \item \textbf{Outros exemplos:}
+    \begin{itemize}
+        \item Análise de séries temporais (preços de ações)
+        \item Reconhecimento de fala
+        \item Tradução automática
+        \item Análise de sequências de DNA
+    \end{itemize}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c]{O Problema da Ordem das Palavras}
+
+\begin{itemize}
+    \item Queremos fazer melhor que implementações de "bag of words" (saco de palavras)
+    \item Idealmente, cada palavra é processada ou compreendida no contexto apropriado
+    \item Precisamos ter alguma noção de \textbf{"contexto"}
+    \item As palavras devem ser tratadas de forma diferente dependendo do contexto
+    \item Além disso, cada palavra deve atualizar o contexto
+\end{itemize}
+
+\vspace{0.25cm}
+\begin{attention}[Exemplo]
+"O banco estava cheio" vs "O banco do parque estava vazio"\\
+A palavra "banco" tem significados diferentes dependendo do contexto!
+\end{attention}
+
+\end{frame}
+
+
+\begin{frame}[c]{Ideia: Usar o Conceito de "Recorrência"}
+
+\begin{itemize}
+    \item Processar palavras uma por uma
+    \vspace{0.3cm}
+    \item A rede produz duas saídas:
+    \begin{enumerate}
+        \item \textbf{Predição:} Qual seria a predição se a sequência terminasse naquela palavra
+        \item \textbf{Estado:} Resumo de tudo que aconteceu no passado
+    \end{enumerate}
+    \vspace{0.3cm}
+    \item Dessa forma, podemos lidar com comprimentos variáveis de texto
+    \vspace{0.3cm}
+    \item A resposta a uma palavra depende das palavras que a precederam
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c]{Visualização da Recorrência}
+
+% \begin{center}
+% \textit{[PEDIR PARA O USUÁRIO: Por favor, busque uma imagem mostrando o diagrama circular de RNN com:]
+% \begin{itemize}
+%     \item Um círculo representando o ESTADO
+%     \item Seta de entrada (de baixo)
+%     \item Seta de saída (para cima)
+%     \item Seta de recorrência (lateral)
+% \end{itemize}
+% \textit{Similar ao slide 5 do PDF original]}
+% \end{center}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=.75\textwidth]{recurrent_neural_network.png}
+\end{figure}
+
+
+O estado é \textbf{recorrente} - ele se alimenta de volta para a próxima etapa temporal!
+
+\end{frame}
+
+
+\begin{frame}[c]{``Desenrolando'' a RNN}
+
+\begin{figure}[h]
+\centering
+\includesvg[width=.9\textwidth]{Recurrent_neural_network_unfold.svg}
+\end{figure}
+
+\vspace{0.3cm}
+Visualização "desenrolada" no tempo ajuda a entender o fluxo de informação
+
+\end{frame}
+
+\begin{frame}[c]{Componentes da RNN Desenrolada}
+
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{Elementos:}
+\begin{itemize}
+    \item $w_i$: palavra na posição $i$
+    \item $s_i$: estado na posição $i$
+    \item $o_i$: saída na posição $i$
+    \item $U$: pesos de entrada (kernel)
+    \item $W$: pesos recorrentes
+    \item $V$: pesos de saída
+\end{itemize}
+
+\column{0.5\textwidth}
+\textbf{Importante:}
+\begin{attention}[Compartilhamento]
+As matrizes $U$, $W$, $V$ são as \textbf{mesmas} em todas as posições temporais!
+\end{attention}
+\end{columns}
+
+\vspace{0.5cm}
+Isso permite generalização através do tempo e reduz drasticamente o número de parâmetros.
+
+\end{frame}
+
+\begin{frame}[c]{Exemplo Prático}
+
+\begin{center}
+Considere a frase: \textbf{"Isso é ótimo!"}
+\end{center}
+
+\begin{table}[]
+\centering
+\begin{tabular}{c|c|c|c}
+\textbf{Posição} & \textbf{Palavra} & \textbf{Estado} & \textbf{Predição} \\ \hline
+1 & "Isso" & $s_1$ & ? \\
+2 & "é" & $s_2$ & ? \\
+3 & "ótimo" & $s_3$ & + \\
+4 & "!" & $s_4$ & ++ \\
+\end{tabular}
+\end{table}
+
+\vspace{0.3cm}
+\begin{itemize}
+    \item A predição fica mais confiante à medida que mais palavras são processadas
+    \item O estado $s_i$ carrega informação de todas as palavras anteriores
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[c]{Fórmulas das RNNs}
+
+\begin{display}[Equações Fundamentais]
+\begin{align*}
+s_i &= f(Uw_i + Ws_{i-1}) \quad \text{(RNN principal)} \\
+o_i &= \text{softmax}(Vs_i) \quad \text{(camada densa subsequente)}
+\end{align*}
+\end{display}
+
+% \vspace{0.3cm}
+\textbf{Em outras palavras:}
+\begin{itemize}
+    \item estado atual = função(estado anterior, entrada atual)
+    \item saída atual = função(estado atual)
+    \item Aprendemos as funções através do treinamento da rede!
+\end{itemize}
+
+% \vspace{0.3cm}
+$f$ é tipicamente uma função de ativação não-linear (tanh ou ReLU)
+
+\end{frame}
+
+\begin{frame}[c]{Dimensões das Matrizes}
+
+\begin{itemize}
+    \item $r$ = dimensão do vetor de entrada
+    \item $s$ = dimensão do estado oculto
+    \item $t$ = dimensão do vetor de saída (após camada densa)
+\end{itemize}
+
+\vspace{0.5cm}
+
+\begin{display}[Dimensões das Matrizes de Peso]
+\begin{itemize}
+    \item $U$ é uma matriz $s \times r$
+    \item $W$ é uma matriz $s \times s$
+    \item $V$ é uma matriz $t \times s$
+\end{itemize}
+\end{display}
+
+\vspace{0.3cm}
+\textbf{Nota importante:} As matrizes $U$, $V$, $W$ são as mesmas em todas as posições temporais.
+
+\end{frame}
+
+
+\begin{frame}[c, fragile]{Componentes no Keras/TensorFlow}
+
+\begin{itemize}
+    \item \textbf{Matriz $U$ (kernel):} Controlada por \texttt{kernel\_initializer}
+    \vspace{0.3cm}
+    \item \textbf{Matriz $W$ (recorrente):} Controlada por \texttt{recurrent\_initializer}
+    \vspace{0.3cm}
+    \item \textbf{Matriz $V$ (saída):} Implementada como uma camada \texttt{Dense} subsequente
+\end{itemize}
+
+\vspace{0.5cm}
+
+
+\begin{code}[Exemplo de Código]{python}
+model.add(SimpleRNN(units=128,
+                    kernel_initializer='glorot_uniform',
+                    recurrent_initializer='orthogonal'))
+model.add(Dense(num_classes, activation='softmax'))
+\end{code}
+
+\end{frame}
+
+
+\begin{frame}[c, fragile]{Detalhes Práticos de Implementação}
+
+\begin{itemize}
+    \item Frequentemente, treinamos apenas na saída "final" e ignoramos as saídas intermediárias
+    \vspace{0.3cm}
+    \item Uma variação chamada \textbf{Backpropagation Through Time (BPTT)} é usada para treinar RNNs
+    \vspace{0.3cm}
+    \item Sensível ao comprimento da sequência (devido ao problema de "gradiente desaparecendo/explodindo")
+    \vspace{0.3cm}
+    \item Na prática, ainda definimos um comprimento máximo para nossas sequências:
+    \begin{itemize}
+        \item Se a entrada é mais curta, fazemos \textbf{padding} (preenchimento)
+        \item Se a entrada é mais longa, truncamos
+    \end{itemize}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c, fragile]{Exemplo de Código: Preparação dos Dados}
+
+\begin{code}[Pré-processamento de Sequências]{python}
+from tensorflow.keras.preprocessing import sequence
+
+# Definir comprimento máximo
+max_length = 100
+
+# Padding das sequências
+X_train = sequence.pad_sequences(X_train, 
+                                 maxlen=max_length,
+                                 padding='post',
+                                 truncating='post')
+\end{code}
+
+\texttt{padding='post'}: Adiciona zeros no final\\
+\texttt{truncating='post'}: Corta no final se exceder max\_length
+
+\end{frame}
+
+% ============================================
+% SLIDE 15
+% ============================================
+\begin{frame}[c, fragile]{Exemplo de Código: Construindo o Modelo}
+
+
+\begin{code}[Modelo RNN Simples para Classificação de Sentimento]{python}
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Embedding, SimpleRNN, Dense
+
+model = Sequential([
+    Embedding(vocab_size, embedding_dim, 
+              input_length=max_length),
+    SimpleRNN(64, return_sequences=False),
+    Dense(1, activation='sigmoid')
+])
+
+model.compile(optimizer='adam',
+              loss='binary_crossentropy',
+              metrics=['accuracy'])
+\end{code}
+
+\end{frame}
+
+% ============================================
+% SLIDE 16
+% ============================================
+\begin{frame}[c]{Embedding Layer}
+
+\begin{itemize}
+    \item Antes de processar palavras, precisamos convertê-las em vetores numéricos
+    \vspace{0.3cm}
+    \item \textbf{Embedding} aprende uma representação densa de palavras
+    \vspace{0.3cm}
+    \item Cada palavra é mapeada para um vetor de tamanho fixo
+    \vspace{0.3cm}
+    \item Palavras semanticamente similares terão embeddings próximos
+\end{itemize}
+
+\vspace{0.5cm}
+
+\begin{display}[Exemplo]
+\begin{tabular}{l|l}
+\textbf{Palavra} & \textbf{Embedding (simplificado)} \\ \hline
+"bom" & [0.8, 0.3, -0.1, ...] \\
+"ótimo" & [0.85, 0.35, -0.05, ...] \\
+"ruim" & [-0.7, -0.4, 0.2, ...] \\
+\end{tabular}
+\end{display}
+
+\end{frame}
+
+
+\begin{frame}[c]{Aplicações de RNNs (2025)}
+
+\textbf{Processamento de Linguagem Natural:}
+\begin{itemize}
+    \item Análise de sentimento
+    \item Classificação de textos
+    \item Geração de texto (chatbots básicos)
+    \item Modelagem de linguagem
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Séries Temporais:}
+\begin{itemize}
+    \item Previsão de preços de ações
+    \item Previsão de demanda de energia
+    \item Análise de dados climáticos
+    \item Monitoramento de sensores IoT
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c]{Mais Aplicações de RNNs}
+
+\textbf{Reconhecimento de Fala:}
+\begin{itemize}
+    \item Transcrição de áudio para texto
+    \item Comandos de voz
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Bioinformática:}
+\begin{itemize}
+    \item Análise de sequências de DNA
+    \item Predição de estrutura de proteínas
+    \item Classificação de sequências genômicas
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Outras Aplicações:}
+\begin{itemize}
+    \item Reconhecimento de escrita manuscrita
+    \item Análise de vídeo (frame por frame)
+    \item Detecção de anomalias em séries temporais
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[c]{Exemplo Interativo Online}
+
+\begin{display}[TensorFlow Playground - RNN Visualizer]
+\textbf{URL:} \url{https://distill.pub/2019/memorization-in-rnns/}
+\end{display}
+
+\vspace{0.3cm}
+
+\textbf{Este site interativo permite:}
+\begin{itemize}
+    \item Visualizar como RNNs processam sequências
+    \item Ver como o estado oculto evolui ao longo do tempo
+    \item Experimentar com diferentes arquiteturas
+    \item Entender o problema de memória de longo prazo
+\end{itemize}
+
+
+\end{frame}
+
+
+
+\begin{frame}[c]{Problema do Gradiente Desaparecendo/Explodindo}
+
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{Gradiente Desaparecendo:}
+\begin{itemize}
+    \item Gradientes ficam muito pequenos
+    \item Informação do passado distante é "esquecida"
+    \item Dificuldade em aprender dependências de longo prazo
+\end{itemize}
+
+\column{0.5\textwidth}
+\textbf{Gradiente Explodindo:}
+\begin{itemize}
+    \item Gradientes ficam muito grandes
+    \item Instabilidade no treinamento
+    \item Pode ser mitigado com gradient clipping
+\end{itemize}
+\end{columns}
+
+\vspace{0.5cm}
+
+\begin{display}[Exemplo]
+Tentando lembrar o sujeito de uma frase:
+\textit{"O homem que \textcolor{gray}{... muitas palavras ...} estava cansado"}\\
+RNNs simples têm dificuldade em manter "homem" na memória.
+\end{display}
+
+\end{frame}
+
+\begin{frame}[c]{Limitações das RNNs Simples}
+
+\begin{itemize}
+    \item \textbf{Memória de curto prazo:} Dificuldade em manter informação do passado distante sem reforço
+    \vspace{0.3cm}
+    \item \textbf{Processamento sequencial:} Não pode ser facilmente paralelizado
+    \vspace{0.3cm}
+    \item \textbf{Sensibilidade ao comprimento:} Performance degrada com sequências muito longas
+    \vspace{0.3cm}
+    \item \textbf{Treinamento lento:} Backpropagation through time é computacionalmente custoso
+\end{itemize}
+
+% \vspace{0.5cm}
+
+\begin{attention}[Solução]
+Na próxima aula, veremos \textbf{LSTMs (Long Short-Term Memory)}, que foram projetadas especificamente para resolver esses problemas!
+\end{attention}
+
+\end{frame}
+
+
+\begin{frame}[c]{Comparação: RNN vs Outras Arquiteturas (2025)}
+
+\begin{table}[]
+\centering
+\small
+\begin{tabular}{l|c|c|c}
+\textbf{Arquitetura} & \textbf{Paralelização} & \textbf{Memória} & \textbf{Uso em 2025} \\ \hline
+RNN Simples & $\times$ & Curto prazo & Limitado \\
+LSTM/GRU & $\times$ & Longo prazo & Moderado \\
+Transformers & $\checkmark$ & Atenção total & Dominante \\
+CNN 1D & $\checkmark$ & Local & Específico \\
+\end{tabular}
+\end{table}
+
+\vspace{0.5cm}
+
+\textbf{Nota:} Embora Transformers dominem em 2025, RNNs ainda são:
+\begin{itemize}
+    \item Fundamentais para entender arquiteturas modernas
+    \item Úteis em cenários com recursos limitados
+    \item Base para variantes mais eficientes
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[c]{Prévia da Próxima Aula: LSTMs}
+
+\begin{center}
+\Large \textbf{Long Short-Term Memory (LSTM)}
+\end{center}
+
+\vspace{0.5cm}
+
+\textbf{O que veremos:}
+\begin{itemize}
+    \item Arquitetura LSTM: gates de entrada, saída e esquecimento
+    \item Como LSTMs resolvem o problema do gradiente desaparecendo
+    \item Variante GRU (Gated Recurrent Unit)
+    \item Aplicações práticas: tradução automática, chatbots, geração de texto
+    \item Implementação em TensorFlow/Keras
+    \item Comparação RNN vs LSTM vs GRU
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[c]{Referências e Recursos}
+
+\textbf{Leitura Recomendada:}
+\begin{itemize}
+    \item Goodfellow et al. - Deep Learning, Capítulo 10 (RNNs)
+    \item \url{https://colah.github.io/posts/2015-08-Understanding-LSTMs/}
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Tutoriais Interativos:}
+\begin{itemize}
+    \item TensorFlow RNN Tutorial: \url{https://www.tensorflow.org/text/tutorials/text_classification_rnn}
+    \item Distill.pub - Visualizações de RNNs
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Vídeos Complementares:}
+\begin{itemize}
+    \item Stanford CS231n - Lecture 10 (RNNs)
+    \item 3Blue1Brown - Neural Networks series
+\end{itemize}
+
+\end{frame}
+
+
+
+\begin{frame}[c, noframenumbering, plain]
+    \frametitle{~}
+    \vfill
+    \begin{center}
+        {\Huge Obrigado!}\vspace{1.5em}\\
+        {\Large \highlight{Dúvidas?}}\\
+    \end{center}
+    \vfill
+    % \begin{center}
+    %     {\small Próxima aula: 22/10/2025}\\
+    %     {\small Tema: Arquiteturas Modernas de CNNs}
+    % \end{center}
+\end{frame}
+
+\end{document}

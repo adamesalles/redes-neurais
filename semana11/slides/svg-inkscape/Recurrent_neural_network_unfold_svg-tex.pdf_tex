@@ -1,0 +1,90 @@
+%% Creator: Inkscape 1.4.2 (ebf0e940, 2025-05-08), www.inkscape.org
+%% PDF/EPS/PS + LaTeX output extension by Johan Engelen, 2010
+%% Accompanies image file 'Recurrent_neural_network_unfold_svg-tex.pdf' (pdf, eps, ps)
+%%
+%% To include the image in your LaTeX document, write
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics{<filename>.pdf}
+%% To scale the image, write
+%%   \def\svgwidth{<desired width>}
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics[width=<desired width>]{<filename>.pdf}
+%%
+%% Images with a different path to the parent latex file can
+%% be accessed with the `import' package (which may need to be
+%% installed) using
+%%   \usepackage{import}
+%% in the preamble, and then including the image with
+%%   \import{<path to file>}{<filename>.pdf_tex}
+%% Alternatively, one can specify
+%%   \graphicspath{{<path to file>/}}
+%% 
+%% For more information, please see info/svg-inkscape on CTAN:
+%%   http://tug.ctan.org/tex-archive/info/svg-inkscape
+%%
+\begingroup%
+  \makeatletter%
+  \providecommand\color[2][]{%
+    \errmessage{(Inkscape) Color is used for the text in Inkscape, but the package 'color.sty' is not loaded}%
+    \renewcommand\color[2][]{}%
+  }%
+  \providecommand\transparent[1]{%
+    \errmessage{(Inkscape) Transparency is used (non-zero) for the text in Inkscape, but the package 'transparent.sty' is not loaded}%
+    \renewcommand\transparent[1]{}%
+  }%
+  \providecommand\rotatebox[2]{#2}%
+  \newcommand*\fsize{\dimexpr\f@size pt\relax}%
+  \newcommand*\lineheight[1]{\fontsize{\fsize}{#1\fsize}\selectfont}%
+  \ifx\svgwidth\undefined%
+    \setlength{\unitlength}{1504.70722349bp}%
+    \ifx\svgscale\undefined%
+      \relax%
+    \else%
+      \setlength{\unitlength}{\unitlength * \real{\svgscale}}%
+    \fi%
+  \else%
+    \setlength{\unitlength}{\svgwidth}%
+  \fi%
+  \global\let\svgwidth\undefined%
+  \global\let\svgscale\undefined%
+  \makeatother%
+  \begin{picture}(1,0.26450425)%
+    \lineheight{1}%
+    \setlength\tabcolsep{0pt}%
+    \put(0,0){\includegraphics[width=\unitlength,page=1]{Recurrent_neural_network_unfold_svg-tex.pdf}}%
+    \put(0.1718491,0.02311488){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\lineheight{0}\smash{\begin{tabular}[t]{l}x\end{tabular}}}}%
+    \put(0.15286106,0.12685469){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\lineheight{0}\smash{\begin{tabular}[t]{l}h\end{tabular}}}}%
+    \put(0.17108957,0.22894511){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\lineheight{0}\smash{\begin{tabular}[t]{l}o\end{tabular}}}}%
+    \put(0.19575787,0.07268279){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\lineheight{0}\smash{\begin{tabular}[t]{l}U\end{tabular}}}}%
+    \put(-0.00026999,0.13231834){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\lineheight{0}\smash{\begin{tabular}[t]{l}V\end{tabular}}}}%
+    \put(0.1866278,0.1725764){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\lineheight{0}\smash{\begin{tabular}[t]{l}W\end{tabular}}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=2]{Recurrent_neural_network_unfold_svg-tex.pdf}}%
+    \put(0.27226508,0.19428556){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\lineheight{0}\smash{\begin{tabular}[t]{l}Unfold\end{tabular}}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=3]{Recurrent_neural_network_unfold_svg-tex.pdf}}%
+    \put(0.5347691,0.02406688){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\lineheight{0}\smash{\begin{tabular}[t]{l}x\textsubscript{t-1}\end{tabular}}}}%
+    \put(0.51365447,0.12674336){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\lineheight{0}\smash{\begin{tabular}[t]{l}h\textsubscript{t-1}\end{tabular}}}}%
+    \put(0.53294624,0.22883375){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\lineheight{0}\smash{\begin{tabular}[t]{l}o\textsubscript{t-1}\end{tabular}}}}%
+    \put(0.5682479,0.07257147){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\lineheight{0}\smash{\begin{tabular}[t]{l}U\end{tabular}}}}%
+    \put(0.55911782,0.17246508){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\lineheight{0}\smash{\begin{tabular}[t]{l}W\end{tabular}}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=4]{Recurrent_neural_network_unfold_svg-tex.pdf}}%
+    \put(0.70438373,0.02405609){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\lineheight{0}\smash{\begin{tabular}[t]{l}x\textsubscript{t}\end{tabular}}}}%
+    \put(0.68220574,0.12673256){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\lineheight{0}\smash{\begin{tabular}[t]{l}h\textsubscript{t}\end{tabular}}}}%
+    \put(0.70468753,0.22988629){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\lineheight{0}\smash{\begin{tabular}[t]{l}o\textsubscript{t}\end{tabular}}}}%
+    \put(0.73148255,0.07256067){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\lineheight{0}\smash{\begin{tabular}[t]{l}U\end{tabular}}}}%
+    \put(0.72235247,0.17245428){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\lineheight{0}\smash{\begin{tabular}[t]{l}W\end{tabular}}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=5]{Recurrent_neural_network_unfold_svg-tex.pdf}}%
+    \put(0.85369793,0.02405609){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\lineheight{0}\smash{\begin{tabular}[t]{l}x\textsubscript{t+1}\end{tabular}}}}%
+    \put(0.83364663,0.12885922){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\lineheight{0}\smash{\begin{tabular}[t]{l}h\textsubscript{t+1}\end{tabular}}}}%
+    \put(0.85187507,0.23094962){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\lineheight{0}\smash{\begin{tabular}[t]{l}o\textsubscript{t+1}\end{tabular}}}}%
+    \put(0.89036671,0.07256067){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\lineheight{0}\smash{\begin{tabular}[t]{l}U\end{tabular}}}}%
+    \put(0.88123664,0.17245428){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\lineheight{0}\smash{\begin{tabular}[t]{l}W\end{tabular}}}}%
+    \put(0.6070703,0.11254519){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\lineheight{0}\smash{\begin{tabular}[t]{l}V\end{tabular}}}}%
+    \put(0.44304376,0.1116935){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\lineheight{0}\smash{\begin{tabular}[t]{l}V\end{tabular}}}}%
+    \put(0.76566106,0.11447098){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\lineheight{0}\smash{\begin{tabular}[t]{l}V\end{tabular}}}}%
+    \put(0.92431752,0.11618851){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\lineheight{0}\smash{\begin{tabular}[t]{l}V\end{tabular}}}}%
+    \put(0.39492288,0.12365005){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\lineheight{0}\smash{\begin{tabular}[t]{l}...\end{tabular}}}}%
+    \put(0.97284253,0.12873883){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\lineheight{0}\smash{\begin{tabular}[t]{l}...\end{tabular}}}}%
+  \end{picture}%
+\endgroup%
