@@ -1,0 +1,788 @@
+\documentclass[xcolor=dvipsnames,t,aspectratio=169]{beamer}
+
+\usecolortheme{rose}
+\usecolortheme{dolphin}
+\usetheme{Boadilla}
+
+\input{../../templates/slides/imports}
+\input{../../templates/slides/settings}
+\input{../../templates/slides/commands}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, shapes, positioning, calc}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{multicol}
+\usepackage{svg}
+
+% Configuração para código Python
+\lstset{
+    language=Python,
+    basicstyle=\tiny\ttfamily,
+    keywordstyle=\color{blue},
+    commentstyle=\color{green!60!black},
+    stringstyle=\color{orange},
+    showstringspaces=false,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray}
+}
+
+\titlegraphic{
+    \includegraphics[scale = 0.5]{../../templates/slides/logo}
+}
+
+\logo{
+\begin{tikzpicture}[overlay,remember picture]
+\node[below left = 0.2cm] at (current page.30) {
+    \includegraphics[width=0.1\textwidth]{../../templates/slides/logo}};
+\end{tikzpicture}
+}
+
+\newcommand{\highlight}[1]{{\color{nes_dark_orange} #1}}
+
+\title{LSTM + Extras} 
+
+\author{
+    Eduardo Adame
+}
+
+\date{{\color{nes_dark_purple}  \textbf{Redes Neurais}\\[0.5em] 18 de novembro de 2025 }}
+
+
+\begin{document}
+
+
+\frame[plain]{\titlepage}
+\setcounter{framenumber}{0}
+
+
+% ============================================================
+% SLIDE 2 - AGENDA
+% ============================================================
+\begin{frame}[c]{Agenda da Aula}
+\begin{itemize}
+\item Revisão: Limitações das RNNs Padrão
+\item Long Short-Term Memory (LSTM)
+\begin{itemize}
+\item Motivação e Arquitetura
+\item Gates: Forget, Input, Output
+\item Fluxo de Informação
+\end{itemize}
+\item Variantes: GRU e outras
+\item \textbf{Extras: Tendências Modernas}
+\begin{itemize}
+\item Vision Transformers (ViT)
+\item Diffusion Models
+\end{itemize}
+\item Encerramento do Curso
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c]{O Problema das RNNs Padrão}
+\begin{display}[Limitação Fundamental]
+As RNNs tradicionais sofrem do problema de \textbf{memória de curto prazo}
+\end{display}
+
+\begin{itemize}
+\item A matriz de transição necessariamente \textbf{enfraquece o sinal} ao longo do tempo
+\item \textbf{Vanishing gradients}: informação de passos distantes "desaparece"
+\item \textbf{Exploding gradients}: instabilidade numérica
+\item Dificuldade em capturar dependências de longo prazo
+\end{itemize}
+
+\vspace{0.3cm}
+\begin{center}
+\textit{Precisamos de uma estrutura que possa manter algumas dimensões inalteradas por muitos passos!}
+\end{center}
+\end{frame}
+
+\begin{frame}[c]{LSTM: Tornando "Lembrar" Mais Fácil}
+\begin{display}[Ideia Central]
+Criar um mecanismo mais sofisticado de atualização do estado interno
+\end{display}
+
+\textbf{Princípio de Design:}
+\begin{itemize}
+\item Por padrão, LSTMs \textbf{lembram} a informação do passo anterior
+\item Informações são \textbf{esquecidas} ou \textbf{adicionadas} como uma escolha ativa
+\item Usa "gates" (portões) para controlar o fluxo de informação
+\end{itemize}
+
+\vspace{0.3cm}
+\begin{center}
+\textit{Publicado por Hochreiter \& Schmidhuber (1997)}\\
+\textit{Revolucionou o processamento de sequências}
+\end{center}
+\end{frame}
+
+\begin{frame}[c]{Arquitetura LSTM: Visão Geral}
+\begin{figure}
+    \centering
+    \includegraphics[height=.4\textheight]{LSTM3-var-GRU.png}
+\end{figure}
+
+\textbf{Componentes principais:}
+\begin{itemize}
+\item $h_t$: hidden state (estado oculto) - saída da célula
+\item $C_t$: cell state (estado da célula) - "memória" de longo prazo
+\item $x_t$: entrada no tempo $t$
+\item Três gates (portões) controlam o fluxo
+\end{itemize}
+
+\vspace{0.2cm}
+Referência: \url{http://colah.github.io/posts/2015-08-Understanding-LSTMs/}
+\end{frame}
+
+\begin{frame}[c]{Gate 1: Forget Gate (Portão de Esquecimento)}
+\begin{display}[Função]
+Decide quais informações do estado anterior devem ser descartadas
+\end{display}
+
+\begin{equation*}
+f_t = \sigma(W_f \cdot [h_{t-1}, x_t] + b_f)
+\end{equation*}
+
+\begin{itemize}
+\item $\sigma$: função sigmoid (saída entre 0 e 1)
+\item $f_t = 0$: "esqueça tudo"
+\item $f_t = 1$: "mantenha tudo"
+\item Aprende baseado em $h_{t-1}$ (contexto anterior) e $x_t$ (entrada atual)
+\end{itemize}
+
+\textbf{Exemplo:} Em processamento de texto, ao encontrar um novo sujeito, pode esquecer o gênero do sujeito anterior.
+\end{frame}
+
+\begin{frame}[c]{Gate 2: Input Gate (Portão de Entrada)}
+\begin{display}[Função]
+
+Decide quais novas informações serão armazenadas no estado da célula
+\end{display}
+
+\textbf{Duas operações:}
+\begin{align*}
+i_t &= \sigma(W_i \cdot [h_{t-1}, x_t] + b_i) \quad \text{(quanto adicionar)}\\
+\tilde{C}_t &= \tanh(W_C \cdot [h_{t-1}, x_t] + b_C) \quad \text{(o que adicionar)}
+\end{align*}
+
+\begin{itemize}
+\item $i_t$: sigmoid determina quais valores atualizar (0 a 1)
+\item $\tilde{C}_t$: tanh cria vetor de candidatos (-1 a 1)
+\item Multiplicação elemento-a-elemento combina ambos
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c]{Atualização do Cell State}
+\begin{display}[Combinação: Esquecer + Adicionar]
+O novo estado da célula combina informação antiga filtrada e nova informação
+\end{display}
+
+\begin{equation*}
+C_t = f_t \odot C_{t-1} + i_t \odot \tilde{C}_t
+\end{equation*}
+
+\textbf{Notação:} $\odot$ representa multiplicação elemento-a-elemento (Hadamard)
+
+\vspace{0.3cm}
+\begin{itemize}
+\item $f_t \odot C_{t-1}$: mantém partes do estado antigo
+\item $i_t \odot \tilde{C}_t$: adiciona novas informações
+\item Operação linear! Facilita propagação de gradientes
+\end{itemize}
+
+\textit{Esta é a "rodovia de informação" que resolve o problema de vanishing gradients}
+\end{frame}
+
+\begin{frame}[c]{Gate 3: Output Gate (Portão de Saída)}
+\begin{display}[Função]
+Decide qual parte do estado da célula será exposta como saída
+\end{display}
+
+\begin{align*}
+o_t &= \sigma(W_o \cdot [h_{t-1}, x_t] + b_o)\\
+h_t &= o_t \odot \tanh(C_t)
+\end{align*}
+
+\begin{itemize}
+\item $o_t$: controla quanto do cell state mostrar
+\item $\tanh(C_t)$: normaliza valores entre -1 e 1
+\item $h_t$: hidden state, usado como saída e feed para próximo passo
+\end{itemize}
+
+\textbf{Nota:} Não há pesos na aplicação do $\tanh(C_t)$, apenas no gate $o_t$
+\end{frame}
+
+\begin{frame}[c]{LSTM: Todas as Equações}
+\begin{display}[Sistema Completo]
+\begin{align*}
+f_t &= \sigma(W_f \cdot [h_{t-1}, x_t] + b_f) \quad \text{\small (forget gate)}\\
+i_t &= \sigma(W_i \cdot [h_{t-1}, x_t] + b_i) \quad \text{\small (input gate)}\\
+\tilde{C}_t &= \tanh(W_C \cdot [h_{t-1}, x_t] + b_C) \quad \text{\small (candidate values)}\\
+C_t &= f_t \odot C_{t-1} + i_t \odot \tilde{C}_t \quad \text{\small (cell state)}\\
+o_t &= \sigma(W_o \cdot [h_{t-1}, x_t] + b_o) \quad \text{\small (output gate)}\\
+h_t &= o_t \odot \tanh(C_t) \quad \text{\small (hidden state)}
+\end{align*}
+\end{display}
+
+\textbf{Parâmetros treináveis:} $W_f, W_i, W_C, W_o, b_f, b_i, b_C, b_o$
+\end{frame}
+
+\begin{frame}[c]{LSTM Desenrolado no Tempo}
+\begin{figure}
+    \centering
+    \includegraphics[height=.4\textheight]{lstm_overtime.png}
+\end{figure}
+
+\begin{itemize}
+\item Mesmos pesos compartilhados em todos os passos de tempo
+\item Cell state $C_t$ flui horizontalmente com modificações mínimas
+\item Hidden state $h_t$ conecta verticalmente às saídas
+\item Backpropagation through time (BPTT) para treinamento
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c]{Variantes de LSTM}
+\textbf{LSTM não é único! Várias arquiteturas foram propostas:}
+
+\begin{itemize}
+\item \textbf{GRU (Gated Recurrent Unit)} - Cho et al., 2014
+\begin{itemize}
+\item Simplificação do LSTM: combina forget e input gates
+\item Menos parâmetros, mais rápido
+\item Performance comparável em muitas tarefas
+\end{itemize}
+
+\item \textbf{Peephole Connections} - Gers \& Schmidhuber, 2000
+\begin{itemize}
+\item Gates podem "espiar" o cell state
+\end{itemize}
+
+\item \textbf{Coupled Gates}
+\begin{itemize}
+\item Forget e input gates acoplados: $i_t = 1 - f_t$
+\end{itemize}
+\end{itemize}
+
+\vspace{0.2cm}
+\textit{GRU tornou-se muito popular pela eficiência!}
+\end{frame}
+
+\begin{frame}[c]{GRU: Gated Recurrent Unit}
+\textbf{Arquitetura simplificada com apenas 2 gates:}
+
+\begin{align*}
+z_t &= \sigma(W_z \cdot [h_{t-1}, x_t]) \quad \text{\small (update gate)}\\
+r_t &= \sigma(W_r \cdot [h_{t-1}, x_t]) \quad \text{\small (reset gate)}\\
+\tilde{h}_t &= \tanh(W \cdot [r_t \odot h_{t-1}, x_t])\\
+h_t &= (1 - z_t) \odot h_{t-1} + z_t \odot \tilde{h}_t
+\end{align*}
+
+\textbf{Diferenças do LSTM:}
+\begin{itemize}
+\item Não há cell state separado
+\item Menos parâmetros ($\sim 25\%$ menos)
+\item Computação mais rápida
+\item Performance similar em muitas aplicações
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c]{LSTM vs GRU: Quando Usar?}
+\begin{center}
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{Aspecto} & \textbf{LSTM} & \textbf{GRU} \\
+\hline
+Parâmetros & Mais & Menos \\
+Velocidade & Mais lento & Mais rápido \\
+Memória & Maior & Menor \\
+Performance & Ligeiramente melhor* & Comparável \\
+Sequências longas & Melhor & Bom \\
+\hline
+\end{tabular}
+\end{center}
+
+\vspace{0.3cm}
+\textbf{Recomendação prática:}
+\begin{itemize}
+\item Comece com GRU (mais rápido para experimentar)
+\item Use LSTM se precisar de controle mais fino
+\item Teste ambos no seu problema específico
+\item *Depende muito da tarefa!
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c]{Aplicações de LSTMs (2015-2020)}
+\textbf{LSTMs dominaram processamento sequencial até recentemente:}
+
+\begin{itemize}
+\item \textbf{Processamento de Linguagem Natural}
+\begin{itemize}
+\item Tradução automática (seq2seq)
+\item Análise de sentimento
+\item Reconhecimento de entidades nomeadas
+\end{itemize}
+
+\item \textbf{Séries Temporais}
+\begin{itemize}
+\item Previsão de demanda
+\item Análise financeira
+\item Previsão climática
+\end{itemize}
+
+\item \textbf{Outros Domínios}
+\begin{itemize}
+\item Reconhecimento de fala
+\item Geração de texto
+\item Análise de vídeo
+\item Geração de música
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c]{Extra 1: Vision Transformers (ViT)}
+\begin{display}[A Revolução dos Transformers]
+\textit{"Attention is All You Need"} - Vaswani et al., 2017
+\end{display}
+
+\textbf{Transformers vs RNN/LSTM:}
+\begin{itemize}
+\item Não processam sequencialmente - \textbf{paralelizável}!
+\item Usam mecanismo de \textbf{self-attention}
+\item Eliminaram domínio das RNNs em NLP (2017-2019)
+\end{itemize}
+
+\vspace{0.3cm}
+\textbf{Vision Transformers (Dosovitskiy et al., 2020):}
+\begin{itemize}
+\item Aplicam Transformers a imagens
+\item Dividem imagem em patches (pedaços)
+\item Tratam patches como "tokens" de uma sequência
+\item Superaram CNNs em muitas tarefas (com dados suficientes)
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c]{Vision Transformer: Arquitetura Básica}
+\begin{figure}
+    \centering
+    \includegraphics[height=.4\textheight]{vit.png}
+\end{figure}
+
+\textbf{Pipeline:}
+\begin{enumerate}
+\item Divide imagem em patches fixos (ex: 16$\times$16 pixels)
+\item Lineariza cada patch em vetor
+\item Adiciona position embeddings
+\item Passa pela arquitetura Transformer
+\item Classification head na saída
+\end{enumerate}
+
+\textbf{Vantagem chave:} Atenção global desde a primeira camada (vs. campo receptivo local de CNNs)
+\end{frame}
+
+\begin{frame}[c]{Vision Transformers em 2025}
+\textbf{Estado atual (tendências):}
+
+\begin{itemize}
+\item \textbf{Modelos Híbridos:} Combinam CNNs e Transformers
+\begin{itemize}
+\item ConvNeXt, CoAtNet, etc.
+\end{itemize}
+
+\item \textbf{Eficiência:} ViTs leves para dispositivos móveis
+\begin{itemize}
+\item MobileViT, EfficientViT
+\end{itemize}
+
+\item \textbf{Foundation Models:}
+\begin{itemize}
+\item CLIP (OpenAI): visão + linguagem
+\item DINOv2 (Meta): self-supervised learning
+\item SAM (Segment Anything Model)
+\end{itemize}
+
+\item \textbf{Aplicações:} Detecção de objetos, segmentação, geração de imagens
+\end{itemize}
+
+\textit{ViTs são componente fundamental dos modelos multimodais modernos!}
+\end{frame}
+
+\begin{frame}[c]{Extra 2: Diffusion Models}
+\begin{display}[Geração de Imagens de Alta Qualidade]
+Modelos de difusão revolucionaram geração de imagens (2020-2025)
+\end{display}
+
+\textbf{Exemplos famosos:}
+\begin{itemize}
+\item DALL-E 2, DALL-E 3 (OpenAI)
+\item Stable Diffusion (Stability AI)
+\item Midjourney
+\item Imagen (Google)
+\end{itemize}
+
+\vspace{0.3cm}
+\textbf{Por que são importantes?}
+\begin{itemize}
+\item Qualidade superior a GANs em muitos casos
+\item Mais estáveis de treinar
+\item Permitem controle detalhado (text-to-image)
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c]{Diffusion Models: Conceito Básico}
+\textbf{Processo em duas fases:}
+
+\begin{enumerate}
+\item \textbf{Forward process (difusão):}
+\begin{itemize}
+\item Adiciona ruído gaussiano gradualmente à imagem
+\item Em T passos: imagem $\rightarrow$ ruído puro
+\item Processo simples e fixo (não aprendido)
+\end{itemize}
+
+\item \textbf{Reverse process (denoising):}
+\begin{itemize}
+\item Aprende a remover ruído passo a passo
+\item Ruído puro $\rightarrow$ imagem
+\item Usa rede neural (geralmente U-Net)
+\end{itemize}
+\end{enumerate}
+
+\vspace{0.3cm}
+\begin{center}
+\textit{Treinamento: aprende a "prever o ruído" em cada passo}
+\end{center}
+\end{frame}
+
+\begin{frame}[c]{Diffusion: Matemática Simplificada}
+\textbf{Forward process (adicionando ruído):}
+\begin{equation*}
+q(x_t | x_{t-1}) = \mathcal{N}(x_t; \sqrt{1-\beta_t} x_{t-1}, \beta_t I)
+\end{equation*}
+
+\textbf{Reverse process (removendo ruído):}
+\begin{equation*}
+p_\theta(x_{t-1} | x_t) = \mathcal{N}(x_{t-1}; \mu_\theta(x_t, t), \Sigma_\theta(x_t, t))
+\end{equation*}
+
+\textbf{Objetivo de treinamento (simplificado):}
+\begin{equation*}
+\mathcal{L} = \mathbb{E}_{t, x_0, \epsilon} \left[ \| \epsilon - \epsilon_\theta(x_t, t) \|^2 \right]
+\end{equation*}
+
+\textit{Aprende a prever o ruído $\epsilon$ que foi adicionado!}
+\end{frame}
+
+\begin{frame}[c]{Diffusion Models: Arquitetura}
+\textbf{Componentes principais:}
+
+\begin{itemize}
+\item \textbf{U-Net com attention:}
+\begin{itemize}
+\item Encoder-decoder com skip connections
+\item Self-attention em múltiplas escalas
+\item Recebe timestep $t$ como input adicional
+\end{itemize}
+
+\item \textbf{Conditioning (para text-to-image):}
+\begin{itemize}
+\item Text embeddings via CLIP ou T5
+\item Cross-attention entre imagem e texto
+\item Permite controle semântico da geração
+\end{itemize}
+
+\item \textbf{Latent Diffusion (Stable Diffusion):}
+\begin{itemize}
+\item Trabalha em espaço latente (comprimido)
+\item Muito mais eficiente computacionalmente
+\item VAE para encoder/decoder
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c]{Diffusion Models em 2025}
+\textbf{Avanços recentes:}
+
+\begin{itemize}
+\item \textbf{Velocidade:} Modelos de poucos passos (vs. 50-1000 originais)
+\begin{itemize}
+\item LCM (Latent Consistency Models)
+\item SDXL Turbo
+\end{itemize}
+
+\item \textbf{Controle:} ControlNet, IP-Adapter
+\begin{itemize}
+\item Controle fino de pose, edges, depth
+\end{itemize}
+
+\item \textbf{Vídeo:} Runway Gen-2, Pika, Stable Video Diffusion
+
+\item \textbf{3D:} Geração de objetos 3D
+
+\item \textbf{Outras modalidades:} Áudio, música, moléculas
+\end{itemize}
+
+\textit{Diffusion tornou-se framework dominante para geração!}
+\end{frame}
+
+\begin{frame}[c]{Evolução: RNNs → Transformers → Diffusion}
+\begin{center}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Aspecto} & \textbf{RNN/LSTM} & \textbf{Transformers} & \textbf{Diffusion} \\
+\hline
+Ano & 1997-2015 & 2017+ & 2020+ \\
+Paralelização & Não & Sim & Parcial \\
+Domínio & Sequências & Múltiplo & Geração \\
+Uso hoje & Menor & Dominante & Crescente \\
+\hline
+\end{tabular}
+\end{center}
+
+\vspace{0.3cm}
+\textbf{Mensagem principal:}
+\begin{itemize}
+\item LSTMs foram fundamentais, mas Transformers dominam hoje
+\item Cada arquitetura resolveu problemas específicos
+\item Evolução continua: novos modelos surgem constantemente
+\item Fundamentos (gradientes, otimização) permanecem
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c]{Exemplo Interativo: LSTM Playground}
+\textbf{Recomendação de demonstração online:}
+
+\begin{display}[TensorFlow Playground - RNN Extension]
+\url{https://distill.pub/2019/memorization-in-rnns/}
+\end{display}
+
+\textbf{Outras opções:}
+\begin{itemize}
+\item \textbf{LSTMVis:} \url{http://lstm.seas.harvard.edu/}
+\begin{itemize}
+\item Visualização de estados internos de LSTM
+\item Análise de texto
+\end{itemize}
+
+\item \textbf{Hugging Face Spaces:}
+\begin{itemize}
+\item Text generation com GPT (Transformer)
+\item Stable Diffusion demos
+\end{itemize}
+\end{itemize}
+
+\textit{Experimente você mesmo para entender o comportamento!}
+\end{frame}
+
+\begin{frame}[c, fragile]{Implementação: LSTM em PyTorch}
+\begin{code}[Exemplo básico]{python}
+import torch.nn as nn
+class LSTMModel(nn.Module):
+    def __init__(self, input_size, hidden_size, 
+                 num_layers, output_size):
+        super().__init__()
+        self.lstm = nn.LSTM(input_size, hidden_size, 
+                           num_layers, batch_first=True)
+        self.fc = nn.Linear(hidden_size, output_size)
+    def forward(self, x):
+        # x: (batch, seq_len, input_size)
+        lstm_out, (h_n, c_n) = self.lstm(x)
+        # Última saída
+        out = self.fc(lstm_out[:, -1, :])
+        return out
+\end{code}
+\end{frame}
+
+\begin{frame}[c, fragile]{Implementação: GRU em PyTorch}
+\begin{code}[Ainda mais simples]{python}
+class GRUModel(nn.Module):
+    def __init__(self, input_size, hidden_size, 
+                 num_layers, output_size):
+        super().__init__()
+        self.gru = nn.GRU(input_size, hidden_size, 
+                         num_layers, batch_first=True)
+        self.fc = nn.Linear(hidden_size, output_size)
+    def forward(self, x):
+        gru_out, h_n = self.gru(x)
+        out = self.fc(gru_out[:, -1, :])
+        return out
+\end{code}
+
+\textit{PyTorch e TensorFlow implementam todas as otimizações!}
+\end{frame}
+
+\begin{frame}[c]{Dicas Práticas para Usar LSTMs/GRUs}
+\textbf{Ao trabalhar com RNNs:}
+
+\begin{enumerate}
+\item \textbf{Normalização:} Use BatchNorm ou LayerNorm
+\item \textbf{Regularização:} Dropout entre camadas
+\item \textbf{Gradient clipping:} Essencial! (ex: clip à norm 5.0)
+\item \textbf{Inicialização:} Xavier/He, bias do forget gate = 1
+\item \textbf{Bidirectional:} Quando não há restrição temporal
+\item \textbf{Tamanho:} 128-512 hidden units comum
+\item \textbf{Camadas:} 1-4 layers (mais nem sempre é melhor)
+\end{enumerate}
+
+\vspace{0.3cm}
+\textbf{Para produção hoje (2025):}
+\begin{itemize}
+\item Considere Transformers primeiro (mais suporte)
+\item Use LSTMs quando sequências são muito longas
+\item GRUs quando recursos computacionais são limitados
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c]{Panorama de Deep Learning em 2025}
+\textbf{Arquiteturas dominantes por domínio:}
+
+\begin{itemize}
+\item \textbf{Linguagem:} Transformers (GPT, BERT, Claude, etc.)
+\item \textbf{Visão:} ViT, híbridos CNN-Transformer
+\item \textbf{Geração de Imagens:} Diffusion Models
+\item \textbf{Séries Temporais:} Ainda mix (LSTM, Transformers, N-BEATS)
+\item \textbf{Recomendação:} Deep Learning + métodos clássicos
+\item \textbf{Multimodal:} Transformers com múltiplos encoders
+\end{itemize}
+
+\vspace{0.3cm}
+\textbf{Tendências:}
+\begin{itemize}
+\item Foundation models cada vez maiores
+\item Fine-tuning e transfer learning
+\item Eficiência: quantização, pruning, distillation
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c]{Reflexões sobre o Curso}
+\textbf{O que vimos ao longo do semestre:}
+
+\begin{itemize}
+\item \textbf{Fundamentos:} Perceptrons, MLPs, backpropagation
+\item \textbf{Otimização:} SGD, Adam, learning rate, regularização
+\item \textbf{CNNs:} Convolução, pooling, arquiteturas clássicas
+\item \textbf{Transfer Learning:} Fine-tuning, feature extraction
+\item \textbf{RNNs e LSTMs:} Processamento sequencial
+\item \textbf{Tópicos avançados:} Attention, Transformers, Diffusion
+\end{itemize}
+
+\vspace{0.3cm}
+\begin{center}
+\textit{"A jornada de mil milhas começa com um único passo"}\\
+\vspace{0.2cm}
+Vocês agora têm a base para explorar qualquer arquitetura moderna!
+\end{center}
+\end{frame}
+
+\begin{frame}[c]{Recursos para Continuar Aprendendo}
+\textbf{Cursos online:}
+\begin{itemize}
+\item Fast.ai - Practical Deep Learning
+\item CS231n (Stanford) - Computer Vision
+\item CS224n (Stanford) - NLP
+\item Deep Learning Specialization (Coursera)
+\end{itemize}
+
+\textbf{Leitura:}
+\begin{itemize}
+\item Deep Learning (Goodfellow, Bengio, Courville)
+\item Papers with Code: \url{https://paperswithcode.com/}
+\item Distill.pub - Visualizações interativas
+\end{itemize}
+
+\textbf{Prática:}
+\begin{itemize}
+\item Kaggle competitions
+\item Projetos pessoais
+\item Contribuir para open source
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c]{Próximos Passos Sugeridos}
+\textbf{Após este curso, você pode:}
+
+\begin{enumerate}
+\item \textbf{Especializar-se:}
+\begin{itemize}
+\item Computer Vision (detecção, segmentação, tracking)
+\item NLP (LLMs, RAG, agents)
+\item Generative AI (GANs, Diffusion, VAEs)
+\item Reinforcement Learning
+\end{itemize}
+
+\item \textbf{Aplicar:}
+\begin{itemize}
+\item Projetos de pesquisa
+\item Competições (Kaggle, etc.)
+\item Startup/empresa
+\end{itemize}
+
+\item \textbf{Aprofundar teoria:}
+\begin{itemize}
+\item Otimização matemática
+\item Teoria da informação
+\item Probabilidade e estatística bayesiana
+\end{itemize}
+\end{enumerate}
+\end{frame}
+
+\begin{frame}[c, plain]{}
+\begin{center}
+{\Large \textbf{O campo de Deep Learning está}}\\[0.3cm]
+{\Large \textbf{em constante evolução}}\\[0.4cm]
+
+\vspace{0.4cm}
+\textit{O que vocês aprenderam aqui são os fundamentos}\\
+\textit{que permanecem, mesmo quando surgem novas arquiteturas}\\[0.4cm]
+
+\vspace{0.4cm}
+{\large Backpropagation, gradientes, otimização,}\\
+{\large regularização, avaliação...}\\[0.3cm]
+
+\vspace{0.4cm}
+{\Large \textbf{Esses conceitos são eternos!}}\\[0.4cm]
+
+\vspace{0.4cm}
+\textit{Continue aprendendo, experimentando, e questionando.}\\
+\textit{O melhor ainda está por vir!}
+\end{center}
+\end{frame}
+
+\begin{frame}[c, noframenumbering, plain]
+    \frametitle{~}
+    \vfill
+    \begin{center}
+        {\Huge Obrigado!}\vspace{1.5em}\\
+        {\Large \highlight{Dúvidas?}}\\
+    \end{center}
+    \vfill
+    \begin{center}
+        {\small Espero que tenham gostado do curso, foi um prazer!}\\
+        {\small Contem comigo \highlight{sempre} que precisarem, estarei na torcida.}
+    \end{center}
+
+    \begin{flushright}
+        {\small Eduardo Adame, 2025}
+    \end{flushright}
+\end{frame}
+
+% ============================================================
+% REFERÊNCIAS
+% ============================================================
+\begin{frame}[c]{Referências Principais}
+\footnotesize
+\textbf{Papers Fundamentais:}
+\begin{itemize}
+\item Hochreiter \& Schmidhuber (1997). Long Short-Term Memory. Neural Computation.
+\item Cho et al. (2014). Learning Phrase Representations using RNN Encoder-Decoder.
+\item Vaswani et al. (2017). Attention is All You Need. NeurIPS.
+\item Dosovitskiy et al. (2020). An Image is Worth 16x16 Words: Transformers for Image Recognition.
+\item Ho et al. (2020). Denoising Diffusion Probabilistic Models. NeurIPS.
+\item Rombach et al. (2022). High-Resolution Image Synthesis with Latent Diffusion Models. CVPR.
+\end{itemize}
+
+\end{frame}
+
+\end{document}

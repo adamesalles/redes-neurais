@@ -1,0 +1,169 @@
+\documentclass[a4paper,12pt]{article}
+
+% Pacotes essenciais
+\usepackage[portuguese]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tikz}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{float}
+
+% Configuração de cabeçalho e rodapé
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Curso de Redes Neurais - Semana X}
+\fancyhead[R]{\today}
+\fancyfoot[C]{\thepage}
+
+% Configuração para código Python
+\lstdefinestyle{python}{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{gray}\itshape,
+    stringstyle=\color{red},
+    showstringspaces=false,
+    breaklines=true,
+    frame=single,
+    backgroundcolor=\color{gray!5},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    stepnumber=1
+}
+
+% Configuração de links
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=blue
+}
+
+% Definição de ambientes personalizados
+\newtheorem{definicao}{Definição}[section]
+\newtheorem{teorema}{Teorema}[section]
+\newtheorem{exemplo}{Exemplo}[section]
+
+% Título do documento
+\title{Notas de Aula - Semana X \\
+       \large Título do Tópico}
+\author{Nome do Instrutor}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+% Seção 1: Introdução
+\section{Introdução}
+
+Breve introdução ao tópico da semana, contextualizando com o conteúdo anterior e estabelecendo os objetivos de aprendizagem.
+
+\subsection{Objetivos de Aprendizagem}
+Ao final desta aula, o estudante será capaz de:
+\begin{itemize}
+    \item Objetivo 1
+    \item Objetivo 2
+    \item Objetivo 3
+\end{itemize}
+
+% Seção 2: Fundamentos Teóricos
+\section{Fundamentos Teóricos}
+
+\subsection{Conceitos Fundamentais}
+
+\begin{definicao}
+Definição importante do tópico.
+\end{definicao}
+
+Explicação detalhada dos conceitos fundamentais, incluindo:
+\begin{enumerate}
+    \item Primeiro conceito
+    \item Segundo conceito
+    \item Terceiro conceito
+\end{enumerate}
+
+\subsection{Formulação Matemática}
+
+Apresentação das equações e fórmulas relevantes:
+
+\begin{equation}
+    \text{Equação importante} = \text{formulação}
+    \label{eq:importante}
+\end{equation}
+
+Onde cada termo representa...
+
+% Seção 3: Implementação Prática
+\section{Implementação Prática}
+
+\subsection{Algoritmo Passo a Passo}
+\begin{enumerate}
+    \item Passo 1: Descrição
+    \item Passo 2: Descrição
+    \item Passo 3: Descrição
+\end{enumerate}
+
+\subsection{Exemplo de Código}
+\begin{lstlisting}[style=python, caption=Exemplo de implementação em Python]
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Código de exemplo
+def funcao_exemplo(x):
+    """
+    Função de exemplo para demonstrar conceitos
+    """
+    return x**2
+
+# Uso da função
+x = np.linspace(-10, 10, 100)
+y = funcao_exemplo(x)
+plt.plot(x, y)
+plt.title('Exemplo de Função')
+plt.show()
+\end{lstlisting}
+
+% Seção 4: Exercícios Propostos
+\section{Exercícios Propostos}
+
+\subsection{Exercício 1}
+Descrição do primeiro exercício com instruções claras.
+
+\textbf{Dica:} Sugestão para resolver o exercício.
+
+\subsection{Exercício 2}
+Descrição do segundo exercício.
+
+\subsection{Exercício 3}
+Exercício mais desafiador que integra os conceitos.
+
+% Seção 5: Leitura Complementar
+\section{Leitura Complementar}
+
+\begin{itemize}
+    \item Referência 1: Livro ou artigo relevante
+    \item Referência 2: Tutorial online
+    \item Referência 3: Paper científico (opcional)
+\end{itemize}
+
+% Seção 6: Próxima Aula
+\section{Próxima Aula}
+
+Breve preview dos tópicos que serão abordados na próxima semana e como eles se conectam com o conteúdo atual.
+
+\end{document}
